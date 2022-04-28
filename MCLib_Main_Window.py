@@ -772,9 +772,11 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		reply = QMessageBox.warning(self, "初始化", "是否删除全部数据并初始化？", 
 			QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 		if reply == QMessageBox.Yes:
+			self.p_c_treeview.itemSelectionChanged.disconnect()
 			self.DB.init()
-			self.p_c_tree_refresh()
 			self.read_profile()
+			self.p_c_tree_refresh()
+			self.p_c_treeview.itemSelectionChanged.connect(self.case_things_refresh)
 
 	def back_up(self):
 		path = QFileDialog.getExistingDirectory(self, "请选择存放备份文件的文件夹", self.default_filepath)

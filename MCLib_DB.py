@@ -362,8 +362,7 @@ class DataBase(object):
 	def delete_person(self, which_type, pid):
 		self.delete(f"{which_type}_list", 'id', pid)
 		self.delete(f"{which_type}_info", f"{which_type}_id", pid)
-		self.delete_multi_condition('case_info', f"case_name = '{self.trans(case_name)}' and"\
-				f" value_form = '{which_type}' and value2 = '{pid}'")
+		self.delete_multi_condition('case_info', f"value_form = '{which_type}' and value2 = '{pid}'")
 
 	# 数据库文件
 	def delete_DB(self):
@@ -633,17 +632,18 @@ class DataBase(object):
 						s = s + f"、{name}"
 					if abbr:
 						abbreviation = [x['value'] for x in infos if x['item'] == '简称'] + [[]][0]
-						if abbreviation:
+						if abbreviation and abbreviation[0]:
 							s = s + f"(以下简称“{abbreviation[0]}”)"
 
 		if '仲裁协议' in [x['item'] for x in type_item]:
 			contract = [x['value'] for x in case_info if x['item'] == '仲裁协议'] + [[]][0]
 			if contract:
-				s = s + f"之间因{contract[0]}所引起的争议仲裁案"
 				if abbr:
 					abbreviation = [x['value'] for x in case_info if x['item'] == '仲裁协议简称'] + [[]][0]
-					if abbreviation:
-						s = s + f"(以下简称“{abbreviation[0]}”)"
+					if abbreviation and abbreviation[0]:
+						s = s + f"之间因{contract[0]}(以下简称“{abbreviation[0]}”)所引起的争议仲裁案"
+				else:
+					s = s + f"之间因{contract[0]}所引起的争议仲裁案"
 		elif '案由' in [x['item'] for x in type_item]:
 			cause = [x['value'] for x in case_info if (x['item'] == '案由')] + [[]][0]
 			if cause:

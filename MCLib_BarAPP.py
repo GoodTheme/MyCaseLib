@@ -3,7 +3,7 @@ import rumps
 import subprocess
 import sys
 from datetime import datetime, timedelta
-from MCLib_Main import ui_main
+from MCLib_Main_Window import ui_main
 from functools import partial
 from PyQt5.QtWidgets import QApplication
 from MCLib_today_news import ui_today_news
@@ -59,6 +59,9 @@ class MenuBarApp(rumps.App):
 	def show_about(self, _):
 		self.window_main.show_about()
 
+	def menu_refresh(self, _):
+		self.create_menu()
+
 	def create_menu(self):
 		self.menu.clear()
 		new_menu = [rumps.MenuItem("主界面", callback = self.show_main_window)]
@@ -67,7 +70,7 @@ class MenuBarApp(rumps.App):
 
 		menu = [rumps.MenuItem("项目文件夹")]
 		project_list = self.DB.select('project_list', 'project_name')
-		sub_menu = [rumps.MenuItem("更新列表..", callback = self.create_menu)]
+		sub_menu = [rumps.MenuItem("更新列表..", callback = self.menu_refresh)]
 		sub_menu.append(None)
 
 		for project in project_list:

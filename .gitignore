@@ -3,4 +3,5 @@
 
 build/
 dist/
+MCLib/
 __pycache__/
