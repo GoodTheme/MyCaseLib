@@ -795,11 +795,17 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			reply = QMessageBox.warning(self, "还原文件", "将覆盖现有全部数据，是否继续？", 
 				QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 			if reply == QMessageBox.Yes:
+				self.p_c_treeview.itemSelectionChanged.disconnect()
 				self.DB.delete_DB()
 				try:
 					copyfile(BAK_PATH, self.DB_PATH)
 				except:
 					QMessageBox.critical(self, "错误", "还原出错")
+				else:
+					self.read_profile()
+					self.p_c_tree_refresh()
+				finally:
+					self.p_c_treeview.itemSelectionChanged.connect(self.case_things_refresh)
 
 	def change_default_path(self):
 		new_path = QFileDialog.getExistingDirectory(self, "请选择默认文件地址", self.default_filepath)

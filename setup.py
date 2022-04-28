@@ -8,14 +8,7 @@ Usage:
 from setuptools import setup
 
 APP = ['MyCaseLib.py']
-DATA_FILES = [
-'MCLib_BarAPP.py', 
-'MCLib_DB.py', 
-'MCLib_Main.py', 
-'MCLib_UI.py', 
-'MCLib_widgets_UI.py', 
-'MCLib_widgets.py',
-'MCLib_today_news.py',  
+DATA_FILES = [ 
 'example',
 'MCLib_Bar_icon.png'
 ]
