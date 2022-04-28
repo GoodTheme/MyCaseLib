@@ -111,6 +111,7 @@ class DataBase(object):
 			conn.commit()
 			conn.close()
 
+	## update的条件均在前面
 	def update(self, table_name, p_column, p_value, column_name, value):
 		conn = sqlite3.connect(self.DB_PATH)
 		cursor = conn.cursor()
@@ -121,6 +122,16 @@ class DataBase(object):
 			f"where {p_column} = '{p_value}'")
 		cursor.close()
 		
+		conn.commit()
+		conn.close()
+
+	def update_multi_condition(self, table_name, condition, column_name, value):
+		conn = sqlite3.connect(self.DB_PATH)
+		cursor = conn.cursor()
+	
+		cursor.execute(f"update {table_name} set {column_name} = '{value}' where {condition}")
+		cursor.close()
+
 		conn.commit()
 		conn.close()
 
@@ -183,6 +194,7 @@ class DataBase(object):
 				d[col[0]] = row[idx]
 			return d
 
+		conn = sqlite3.connect(self.DB_PATH)
 		conn.row_factory = dict_factory
 		cursor = conn.cursor()
 		cursor.execute(f"select {column} from {table_name} where {condition}")
@@ -238,29 +250,9 @@ class DataBase(object):
 	def delete_type_item(self, type_name, item_name):
 		for s in self.select_all('case_list', 'case_type', type_name):
 			case_name = s['case_name']
-			self.delete(case_name, 'item', item_name)
+			self.delete_multi_condition('case_info', f"case_name = '{self.trans(case_name)}' and item = '{self.trans(item_name)}'")
 		
-		for s in self.select_all('case_type', 'type_name', type_name):
-			if s['item'] == item_name:
-				self.delete('case_type', 'id', s['id'])
-
-	def rename_type_item(self, type_name, item_name, new_name):
-		for s in self.select_all('case_list', 'case_type', type_name):
-			case_name = s['case_name']
-			self.update(case_name, 'item', item_name, 'item', new_name)
-		
-		for s in self.select_all('case_type', 'type_name', type_name):
-			if s['item'] == item_name:
-				self.update('case_type', 'id', s['id'], 'item', new_name)
-
-	def rename_type_item(self, type_name, item_name, new_name):
-		for s in self.select_all('case_list', 'case_type', type_name):
-			case_name = s['case_name']
-			self.update(case_name, 'item', item_name, 'item', new_name)
-		
-		for s in self.select_all('case_type', 'type_name', type_name):
-			if s['item'] == item_name:
-				self.update('case_type', 'id', s['id'], 'item', new_name)
+		self.delete_multi_condition('case_type', f"type_name = '{self.trans(type_name)}' and item = '{self.trans(item_name)}'")
 
 	# 项目
 	def new_project(self, project_name, project_num = None, file_path = None):
@@ -288,80 +280,42 @@ class DataBase(object):
 
 	# 案件
 	def change_project(self, case_name, project_name, new_project):
-		self.update(case_name, 'item', 'project_name', 'value', new_project)
 		self.update('case_list', 'case_name', case_name, 'project_name', new_project)
-		self.update('todo_list', 'case_name', case_name, 'project_name', new_project)
-		self.update('event_list', 'case_name', case_name, 'project_name', new_project)
 
 	def new_case(self, project_name, case_name, case_type):
-		conn = sqlite3.connect(self.DB_PATH)
-		cursor = conn.cursor()
-
 		try:
-			cursor.execute(f"create table {self.trans(case_name)} (id integer primary key, "\
-				f"item text, value_form text, value text, value2 text)")
-		except:
-			print("该案件已存在。")
-		else:
-			self.insert("case_list", "project_name", project_name)
-			self.update_latest("case_list", "case_name", case_name)
-			self.update_latest("case_list", "case_type", case_type)
-
-			self.insert(case_name, "item", "project_name")
-			self.update_latest(case_name, "value", project_name)
-			self.insert(case_name, "item", "case_name")
-			self.update_latest(case_name, "value", case_name)
-			self.insert(case_name, "item", "case_type")
-			self.update_latest(case_name, "value", case_type)
-
-		finally:
-			cursor.close()
-			conn.commit()
-			conn.close()
-
-	def rename_case(self, project_name, case_name, new_name):
-		conn = sqlite3.connect(self.DB_PATH)
-		cursor = conn.cursor()
-		
-		try:
-			cursor.execute(f"alter table {self.trans(case_name)} rename to {self.trans(new_name)}")
-		except:
-			print("该案件不存在。")
-		else:
-			self.update("case_list", "case_name", case_name, "case_name", new_name)
-			self.update(new_name, "item", "case_name", "value", new_name)
-
-		finally:
-			cursor.close()
-			conn.commit()
-			conn.close()
-
-	def delete_case(self, case_name):
-		conn = sqlite3.connect(self.DB_PATH)
-		cursor = conn.cursor()
-		
-		try:
-			cursor.execute(f"drop table {self.trans(case_name)}")
+			self.insert('case_list', 'project_name', project_name)
 		except:
 			pass
 		else:
-			self.delete("case_list", "case_name", case_name)
-		finally:
-			cursor.close()
-			conn.commit()
-			conn.close()
+			self.update_latest('case_list', 'case_name', case_name)
+			self.update_latest('case_list', 'case_type', case_type)
 
+	def rename_case(self, project_name, case_name, new_name):
+		try:
+			self.update('case_list', 'case_name', case_name, 'case_name', new_name)
+		except:
+			pass
+		else:
+			self.update('case_info', 'case_name', case_name, 'case_name', new_name)
+			self.update('todo_list', 'case_name', case_name, 'case_name', new_name)
+			self.update('event', 'case_name', case_name, 'case_name', new_name)
+
+	def delete_case(self, case_name):
+		self.delete('case_list', 'case_name', case_name)
+		self.delete('case_info', 'case_name', case_name)
 		self.delete('todo_list', 'case_name', case_name)
 		self.delete('event_list', 'case_name', case_name)
 
 	def insert_value(self, case_name, item_name, item_form, *value):
-		self.insert(case_name, 'item', item_name)
-		self.update_latest(case_name, 'value_form', item_form)
+		self.insert('case_info', 'case_name', case_name)
+		self.update_latest('case_info', 'item', item_name)
+		self.update_latest('case_info', 'value_form', item_form)
 		if item_form == 'text':
-			self.update_latest(case_name, 'value', value[0])
+			self.update_latest('case_info', 'value', value[0])
 		elif item_form == 'contact' or item_form == 'party':
-			self.update_latest(case_name, 'value', value[0])
-			self.update_latest(case_name, 'value2', value[1])
+			self.update_latest('case_info', 'value', value[0])
+			self.update_latest('case_info', 'value2', value[1])
 
 	# 当事人和联系人
 	def new_party_contact_class(self, which_type, class_name, fisrt_item):
@@ -408,9 +362,8 @@ class DataBase(object):
 	def delete_person(self, which_type, pid):
 		self.delete(f"{which_type}_list", 'id', pid)
 		self.delete(f"{which_type}_info", f"{which_type}_id", pid)
-		for s in self.select('case_list', 'case_name'):
-			self.delete_multi_condition(s['case_name'], f"value_form = '{which_type}' "\
-				f"and value2 = '{pid}'")
+		self.delete_multi_condition('case_info', f"case_name = '{self.trans(case_name)}' and"\
+				f" value_form = '{which_type}' and value2 = '{pid}'")
 
 	# 数据库文件
 	def delete_DB(self):
@@ -448,7 +401,7 @@ class DataBase(object):
 		''' % (color['value'])
 		s = s + f"<h3>{project}</h3>"
 		project_info = self.select_all('project_list', 'project_name', project)
-		if project_info[0]['project_num']:
+		if project_info and project_info[0]['project_num']:
 			s = s + f"<p>项目号：{project_info[0]['project_num']}</p>"
 		self.labels = ('特殊', '进行中', '搁置', '已结', '其他')
 		s = s + f"<p>当前状态：{self.labels[int(project_info[0]['label'])]}</p>"
@@ -457,9 +410,8 @@ class DataBase(object):
 
 	def generate_case_info_html(self, case):
 		color1, color2 = self.select('profile', 'value')[3: 5]
-		case_info = self.select_all(case)
-		project = case_info[0]['value']
-		case_type = case_info[2]['value']
+		project = self.select('case_list', 'project_name', 'case_name', case)[0]['project_name']
+		case_type = self.select('case_list', 'case_type', 'case_name', case)[0]['case_type']
 		type_item = self.select_all('case_type', 'type_name', case_type)
 			
 		s = '''
@@ -511,7 +463,8 @@ class DataBase(object):
 		s = s + "<tr><td class = 'mid' colspan = '2'> 基本信息 </td></tr>"
 		for i in [x for x in type_item if x['item_form'] == 'text']:
 			this_item = i['item']
-			items = self.select(case, "id, value_form, value, value2", 'item', this_item)
+			items = self.select_multi_condition('case_info', "id, value_form, value, value2",
+				f"case_name = '{self.trans(case)}' and item = '{self.trans(this_item)}'")
 			if items:
 				value_form = items[0]['value_form']
 				for k in items:
@@ -519,7 +472,8 @@ class DataBase(object):
 						f"<td class = 'right' width = '70%'> {k['value']} </td> </tr>"
 		for i in [x for x in type_item if (x['item_form'] == 'party' or x['item_form'] == 'contact')]:
 			this_item = i['item']
-			items = self.select(case, "id, value_form, value, value2", 'item', this_item)
+			items = self.select_multi_condition('case_info', "id, value_form, value, value2",
+				f"case_name = '{self.trans(case)}' and item = '{self.trans(this_item)}'")
 			if items:
 				value_form = items[0]['value_form']
 				s = s + f"<tr><td class = 'mid' colspan = '2'> {this_item} </td></tr>"
@@ -596,8 +550,8 @@ class DataBase(object):
 			key = lambda x: (x['date']))
 		for todo in todos:
 			if todo['date'] ==  today:
-				s = s + f"<tr> <td class = 'left' width = '50%' align = 'right'>{todo['case_name']}</td> "\
-				f"<td class = 'right' width = '50%'>{if_blank(todo['things'])}</td> </tr>"
+				s = s + f"<tr> <td class = 'left' width = '30%'>{todo['case_name']}</td> "\
+				f"<td class = 'right' width = '70%'>{if_blank(todo['things'])}</td> </tr>"
 			elif todo['date'] > today:
 				break
 		s = s + "</table> <br>"
@@ -614,7 +568,6 @@ class DataBase(object):
 		s =s + "</table> </body>"
 		return s
 	
-
 	def generate_mail_address(self, pid):
 		infos = [[x['item'], x['value']] for x in self.select('contact_info', 'item, value', 'contact_id', pid)]
 		s = ''
@@ -647,9 +600,9 @@ class DataBase(object):
 		return s
 
 	def generate_case_info(self, case, abbr):
-		case_info = self.select_all(case)
-		project = case_info[0]['value']
-		case_type = case_info[2]['value']
+		case_info = self.select_all('case_info', 'case_name', case)
+		project = self.select('case_list', 'project_name', 'case_name', case)[0]['project_name']
+		case_type = self.select('case_list', 'case_type', 'case_name', case)[0]['case_type']
 		type_item = self.select_all('case_type', 'type_name', case_type)
 		
 		s = ''
@@ -658,7 +611,8 @@ class DataBase(object):
 		flag_2 = False
 		for i in [x for x in type_item if (x['item_form'] == 'party')]:
 			this_item = i['item']
-			items = self.select(case, "id, value_form, value, value2", 'item', this_item)
+			items = self.select_multi_condition('case_info', "id, value_form, value, value2",
+				f"case_name = '{self.trans(case)}' and item = '{self.trans(this_item)}'")
 			if items:
 				for k in items:
 					status = k['value']

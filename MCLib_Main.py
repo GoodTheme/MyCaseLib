@@ -249,6 +249,14 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		QMessageBox.about(self, 'MyCaseLib', f"MyCaseLib\n\n版本：{self.version}")
 
 	# 案件列表
+	def trans(self, s):
+		if not s:
+			return ''
+		trans = ''
+		for t in str(s):
+			trans = trans + t if t != "'" else trans + "''"
+		return trans
+
 	def search_result(self):
 		self.search_bar.textChanged.disconnect()
 		keywords = self.search_bar.text()
@@ -276,7 +284,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 				if key_type == '全部' or key_type == '信息':
 					case_list = self.DB.select('case_list', 'case_name', 'project_name', project['project_name'])
 					for case in case_list:
-						case_infos = self.DB.select_all(case['case_name'])
+						case_infos = self.DB.select_all('case_info', 'case_name', case['case_name'])
 						flag = False
 						for t in case_infos:
 							value_form = t['value_form']
@@ -427,8 +435,6 @@ class ui_main(QMainWindow, Ui_MainWindow):
 				cases = [x['case_name'] for x in self.DB.select('case_list', 'case_name')]
 				if case_name in cases:
 					QMessageBox.warning(self, "错误", "该案件已存在。")
-				elif case_name[:1].isdigit():
-					QMessageBox.warning(self, "错误", "案件名不能以数字开头。")
 				else:
 					types = [x['type_name'] for x in self.DB.select('type_list', 'type_name')]
 					case_type, flag3 = QInputDialog.getItem(self, "新的案件", 
@@ -492,9 +498,11 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			new_data, flag = QInputDialog.getText(self, item, f"请输入新的{item}：")
 			if flag and self.p_c_treeview.currentIndex():
 				case = self.p_c_treeview.currentIndex().data()
-				current = self.DB.select(case, 'value', 'item', item)
+				current = self.DB.select_multi_condition('case_info', 'value', 
+					f"case_name = '{self.trans(case)}' and item = '{self.trans(item)}'")
 				if current:
-					self.DB.update(case, 'item', item, 'value', new_data)
+					self.DB.update_multi_condition('case_info', f"case_name = '{self.trans(case)}' and "\
+						f"item = '{self.trans(item)}'", 'value', new_data)
 				else:
 					self.DB.insert_value(case, item, item_form, new_data)
 				self.case_info_refresh()
@@ -525,7 +533,8 @@ class ui_main(QMainWindow, Ui_MainWindow):
 
 	def copy_party_info_all(self, case):
 		s = ''
-		values = self.DB.select(case, 'value, value2', 'value_form', 'party')
+		values = self.DB.select_multi_condition('case_info', 'value, value2', f"case_name = '{self.trans(case)}' "\
+			f"and value_form = 'party'")
 		values_uni = [[x['value'], x['value2']] for x in reduce(lambda x, y: x if y in x else x + [y], [[]] + values)]
 		for party, pid in values_uni:
 			s = s + f"{party}：{self.DB.generate_party_info(pid)}\n"
@@ -558,7 +567,8 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			sub_menu.addAction(newAction)
 			sub_menu.addSeparator()
 
-			values = self.DB.select(case, 'value, value2', 'value_form', 'party')
+			values = self.DB.select_multi_condition('case_info', 'value, value2', f"case_name = '{self.trans(case)}' "\
+				f"and value_form = 'party'")
 			values_uni = [[x['value'], x['value2']] for x in reduce(lambda x, y: x if y in x else x + [y], [[]] + values)]
 			for status, pid in values_uni:
 				name = list(self.DB.select('party_info', 'value', 'party_id', pid)[0].values())[0]
@@ -568,7 +578,8 @@ class ui_main(QMainWindow, Ui_MainWindow):
 
 			sub_menu = self.case_info_menu.addMenu('邮寄地址..')
 			sub_menu.setMinimumWidth(100)
-			values = self.DB.select(case, 'value2', 'value_form', 'contact')
+			values = self.DB.select_multi_condition('case_info', 'value2', f"case_name = '{self.trans(case)}' "\
+				f"and value_form = 'contact'")
 			values_uni = [x['value2'] for x in reduce(lambda x, y: x if y in x else x + [y], [[]] + values)]
 			for pid in values_uni:
 				name = list(self.DB.select('contact_info', 'value', 'contact_id', pid)[0].values())[0]

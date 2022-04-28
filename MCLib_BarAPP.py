@@ -18,7 +18,6 @@ class MenuBarApp(rumps.App):
 		super(MenuBarApp, self).__init__(name = self.NAME, quit_button = None, 
 			icon = 'MCLib_Bar_icon.png', template = True)
 		self.app = rumps.App(name = self.NAME)
-		self.create_menu()
 		self.at_start()
 
 	def at_start(self):
@@ -30,6 +29,7 @@ class MenuBarApp(rumps.App):
 		self.app = QApplication(sys.argv)
 		self.window_main = ui_main(DB = self.DB, DB_PATH = self.DB_PATH)
 		self.window_main.show()
+		self.create_menu()
 		sys.exit(self.app.exec_())
 
 	def show_main_window(self, _):

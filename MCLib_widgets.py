@@ -91,8 +91,17 @@ class ui_edit_case_persons(QDialog, Ui_edit_case_persons_window):
 		return self.DB.select(f"{self.which_type}_info", 'value', f"{self.which_type}_id", pid)[0]['value']
 
 	def persons_view_refresh(self):
+		def trans(s):
+			if not s:
+				return ''
+			trans = ''
+			for t in str(s):
+				trans = trans + t if t != "'" else trans + "''"
+			return trans
+
 		self.persons_view.setRowCount(0)
-		values = self.DB.select(self.case, 'id, value, value2', 'item', self.item)
+		values = self.DB.select_multi_condition('case_info', 'id, value, value2', f"case_name = '{trans(self.case)}'"\
+			f"and item = '{trans(self.item)}'")
 		for k in values:
 			rows = self.persons_view.rowCount()
 			self.persons_view.insertRow(rows)
@@ -113,7 +122,7 @@ class ui_edit_case_persons(QDialog, Ui_edit_case_persons_window):
 	def delete_person(self):
 		if self.persons_view.selectedItems():
 			pid = self.persons_view.item(self.persons_view.currentRow(), 0).text()
-			self.DB.delete(self.case, 'id', pid)
+			self.DB.delete('case_info', 'id', pid)
 			self.persons_view_refresh()
 
 	def view_showmenu(self, menu):
@@ -136,8 +145,8 @@ class ui_edit_case_persons(QDialog, Ui_edit_case_persons_window):
 			if c_row > 0:
 				c_id = self.persons_view.item(c_row, 0).text()
 				up_id = self.persons_view.item(c_row - 1, 0).text()
-				self.DB.swap(self.case, 'value', c_id, up_id)
-				self.DB.swap(self.case, 'value2', c_id, up_id)
+				self.DB.swap('case_info', 'value', c_id, up_id)
+				self.DB.swap('case_info', 'value2', c_id, up_id)
 				self.persons_view_refresh()
 
 	def item_move_down(self):
@@ -147,8 +156,8 @@ class ui_edit_case_persons(QDialog, Ui_edit_case_persons_window):
 			if c_row + 1 < rows:
 				c_id = self.persons_view.item(c_row, 0).text()
 				down_id = self.persons_view.item(c_row + 1, 0).text()
-				self.DB.swap(self.case, 'value', c_id, down_id)
-				self.DB.swap(self.case, 'value2', c_id, down_id)
+				self.DB.swap('case_info', 'value', c_id, down_id)
+				self.DB.swap('case_info', 'value2', c_id, down_id)
 				self.persons_view_refresh()
 
 	def reject(self):

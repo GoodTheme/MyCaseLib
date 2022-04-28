@@ -167,7 +167,7 @@ class Ui_persons_window(object):
         _translate = QtCore.QCoreApplication.translate
         persons_window.setWindowTitle(_translate("persons_window", "Form"))
         self.label.setText(_translate("persons_window", "检索："))
-        self.add_btn.setText(_translate("persons_window", "添加"))
+        self.add_btn.setText(_translate("persons_window", "新建"))
         self.delete_btn.setText(_translate("persons_window", "删除"))
 
 class Ui_new_project_window(object):
@@ -329,8 +329,8 @@ class Ui_type_item_window(object):
         type_item_window.setWindowTitle(_translate("type_item_window", "模板：案件类型"))
         self.new_type_btn.setText(_translate("type_item_window", "新增类型"))
         self.delete_type_btn.setText(_translate("type_item_window", "删除类型"))
-        self.new_item_btn.setText(_translate("type_item_window", "新增一项"))
-        self.delete_item_btn.setText(_translate("type_item_window", "删除一项"))
+        self.new_item_btn.setText(_translate("type_item_window", "新增字段"))
+        self.delete_item_btn.setText(_translate("type_item_window", "删除字段"))
         self.item_up_btn.setText(_translate("type_item_window", "上移"))
         self.item_down_btn.setText(_translate("type_item_window", "下移"))
 
@@ -402,8 +402,8 @@ class Ui_party_contact_window(object):
         party_contact_window.setWindowTitle(_translate("party_contact_window", "模板.."))
         self.new_class_btn.setText(_translate("party_contact_window", "新增类别"))
         self.delete_class_btn.setText(_translate("party_contact_window", "删除类别"))
-        self.new_item_btn.setText(_translate("party_contact_window", "新增一项"))
-        self.delete_item_btn.setText(_translate("party_contact_window", "删除一项"))
+        self.new_item_btn.setText(_translate("party_contact_window", "新增字段"))
+        self.delete_item_btn.setText(_translate("party_contact_window", "删除字段"))
 
 class Ui_today_news_window(object):
     def setupUi(self, today_news_window):
