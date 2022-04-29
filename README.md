@@ -7,9 +7,9 @@
 <br>
 因此，除了诉讼案件以外，也许也可以用于管理其他事务。  
 <br><br><br>
-mac版软件为状态栏app，默认不在dock显示，但与此同时也不显示菜单栏。  
+mac版软件为状态栏app<del>默认不在dock显示，但与此同时也不显示菜单栏。  
 <br>
-如果需要显示菜单栏和dock图标，可以查看包内容，Contents文件下的Info.plist中“LSUIElement”下一行的“true”为“false”。未来版本争取实现仅在显示主界面时显示dock和菜单栏。  
+如果需要显示菜单栏和dock图标，可以查看包内容，Contents文件下的Info.plist中“LSUIElement”下一行的“true”为“false”。未来版本争取实现仅在显示主界面时显示dock和菜单栏。</del>，现在可以正确地显示和隐藏dock栏图标，仅在主界面出现时显示。  
 <br>
 windows版本无状态栏部分。  
 <br>
