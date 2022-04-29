@@ -87,7 +87,6 @@ class MenuBarApp(rumps.App):
 		new_menu.append(menu)
 		new_menu.append(None)
 
-		new_menu.append(rumps.MenuItem("关于", callback = self.show_about))
 		menu = [rumps.MenuItem("配置")]
 		sub_menu = [rumps.MenuItem("默认项目文件夹", callback = self.change_default_path)]
 		sub_menu.append(None)
@@ -101,7 +100,6 @@ class MenuBarApp(rumps.App):
 		menu.append(sub_menu)
 		new_menu.append(menu)
 
-		new_menu.append(None)
 		new_menu.append(rumps.MenuItem(self.QUIT, callback = self.quit))
 		self.menu.update(new_menu)
 

@@ -22,7 +22,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		self.DB = DB
 		self.DB_PATH = DB_PATH
 		self.setWindowIcon(QtGui.QIcon('MCLib_icon.png'))
-		self.version = 'v 0.1'
+		self.version = 'v 0.1b'
 		try:
 			self.init()
 		except:
