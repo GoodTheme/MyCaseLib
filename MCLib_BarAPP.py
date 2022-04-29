@@ -2,11 +2,12 @@
 import rumps
 import subprocess
 import sys
+import time
 from datetime import datetime, timedelta
 from MCLib_Main_Window import ui_main
 from functools import partial
 from PyQt5.QtWidgets import QApplication
-from MCLib_today_news import ui_today_news
+from AppKit import NSApp, NSApplicationActivationPolicyRegular
 
 class MenuBarApp(rumps.App):
 	def __init__(self, DB, DB_PATH):
@@ -30,15 +31,17 @@ class MenuBarApp(rumps.App):
 		self.window_main = ui_main(DB = self.DB, DB_PATH = self.DB_PATH)
 		self.window_main.show()
 		self.create_menu()
+		NSApp.setActivationPolicy_(NSApplicationActivationPolicyRegular)
 		sys.exit(self.app.exec_())
 
 	def show_main_window(self, _):
+		NSApp.setActivationPolicy_(NSApplicationActivationPolicyRegular)
 		self.window_main.show()
+		self.window_main.raise_()
 		sys.exit(self.app.exec_())
 
-	def show(self, _):
-		self.window_report = ui_today_news(DB = self.DB)
-		self.window_report.show()
+	def show_today_news(self, _):
+		self.window_main.show_today_news()
 		sys.exit(self.app.exec_())
 
 	def do_init(self, _):
@@ -62,10 +65,14 @@ class MenuBarApp(rumps.App):
 	def menu_refresh(self, _):
 		self.create_menu()
 
+	def quit(self, _):
+		self.window_main.close()
+		rumps.quit_application()
+
 	def create_menu(self):
 		self.menu.clear()
 		new_menu = [rumps.MenuItem("主界面", callback = self.show_main_window)]
-		new_menu.append(rumps.MenuItem("今日简报", callback = self.show))
+		new_menu.append(rumps.MenuItem("今日简报", callback = self.show_today_news))
 		new_menu.append(None)
 
 		menu = [rumps.MenuItem("项目文件夹")]
@@ -95,7 +102,7 @@ class MenuBarApp(rumps.App):
 		new_menu.append(menu)
 
 		new_menu.append(None)
-		new_menu.append(rumps.MenuItem(self.QUIT, callback = rumps.quit_application))
+		new_menu.append(rumps.MenuItem(self.QUIT, callback = self.quit))
 		self.menu.update(new_menu)
 
 	def open_file(self, project_name, _):

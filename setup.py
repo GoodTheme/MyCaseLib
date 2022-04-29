@@ -16,9 +16,6 @@ DATA_FILES = [
 OPTIONS = {
     'iconfile': 'MCLib_icon.png',
     'argv_emulation': True,
-    'plist': {
-        'LSUIElement': True,
-    },
     'includes': [
     'rumps', 
     'PyQt5', 

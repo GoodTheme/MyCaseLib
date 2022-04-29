@@ -1,7 +1,7 @@
 #coding=utf-8
 import os
 import sys
-from MCLib_Main_Window import ui_main
+from MCLib_Main_Window_win import ui_main
 from MCLib_DB import DataBase
 from PyQt5.QtWidgets import QApplication
 

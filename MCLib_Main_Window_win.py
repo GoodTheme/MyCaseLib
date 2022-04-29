@@ -10,7 +10,6 @@ from datetime import datetime
 from shutil import copyfile
 from MCLib_today_news import ui_today_news
 
-from AppKit import NSApp, NSApplicationActivationPolicyAccessory
 from MCLib_UI import Ui_MainWindow
 from MCLib_widgets import *
 
@@ -41,7 +40,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		self.main_menu_init()
 
 	def closeEvent(self, event):
-		NSApp.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
+		pass
 
 	def read_profile(self):
 		self.p_c_order, self.default_filepath = [x['value'] for x in self.DB.select('profile', 'value')][0:2]
