@@ -245,6 +245,8 @@ class ui_main(QMainWindow, Ui_MainWindow):
 	def show_today_news(self):
 		self.window_second = ui_today_news(DB = self.DB)
 		self.window_second.show()
+#		self.window_second.raise_()
+#		self.window_second.activateWindow()
 
 	def show_about(self):
 		QMessageBox.about(self, 'MyCaseLib', f"MyCaseLib\n\n版本：{self.version}")
