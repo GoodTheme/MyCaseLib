@@ -194,6 +194,9 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			case = self.p_c_treeview.currentIndex().data()
 			case_type = self.DB.select('case_list', 'case_type', 'case_name', case)[0]['case_type']
 			items = self.DB.select('case_type', 'item, item_form', 'type_name', case_type)
+			newAction = QAction("案件名", self)
+			newAction.triggered.connect(partial(self.edit_case_name, case))
+			sub_menu.addAction(newAction)
 			for s in items:
 				newAction = QAction(s['item'], self)
 				newAction.triggered.connect(partial(self.edit_case_value, case, s['item'], s['item_form']))
@@ -496,6 +499,21 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		self.p_c_tree_refresh()
 		self.p_c_treeview.itemSelectionChanged.connect(self.case_things_refresh)
 
+	def edit_case_name(self, n_name):
+		self.p_c_treeview.itemSelectionChanged.disconnect()
+		if self.p_c_treeview.currentIndex().data() and self.p_c_treeview.currentIndex().parent().data():
+			project_name = self.p_c_treeview.currentIndex().data()
+			case_name, flag = QInputDialog.getText(self, "案件名", "请输入新案件名：")
+			if flag and case_name:
+				cases = [x['case_name'] for x in self.DB.select('case_list', 'case_name')]
+				if case_name in cases:
+					QMessageBox.warning(self, "错误", "该案件已存在。")
+				else:
+					self.DB.rename_case(project_name, n_name, case_name)
+
+		self.p_c_tree_refresh()
+		self.p_c_treeview.itemSelectionChanged.connect(self.case_things_refresh)
+
 	def edit_case_value(self, case, item, item_form):
 		if item_form == 'text':
 			new_data, flag = QInputDialog.getText(self, item, f"请输入新的{item}：")
@@ -558,27 +576,19 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			case = current.data()
 
 			self.case_info_menu = QMenu(self.info_view)
-			newAction = QAction("案件信息", self)
-			newAction.triggered.connect(partial(self.copy_case_info, case, False))
-			self.case_info_menu.addAction(newAction)
-			newAction = QAction("案件信息（含简称）", self)
-			newAction.triggered.connect(partial(self.copy_case_info, case, True))
+			newAction = QAction("----复制----".center(20), self)
 			self.case_info_menu.addAction(newAction)
 
-			self.case_info_menu.addSeparator()
-			sub_menu = self.case_info_menu.addMenu('当事人（查看）..')
+			sub_menu = self.case_info_menu.addMenu('案件信息..')
 			sub_menu.setMinimumWidth(100)
+			newAction = QAction("（不含简称）", self)
+			newAction.triggered.connect(partial(self.copy_case_info, case, False))
+			sub_menu.addAction(newAction)
+			newAction = QAction("（含简称）", self)
+			newAction.triggered.connect(partial(self.copy_case_info, case, True))
+			sub_menu.addAction(newAction)
 
-			values = self.DB.select_multi_condition('case_info', 'value, value2', f"case_name = '{self.trans(case)}' "\
-				f"and value_form = 'party'")
-			values_uni = [[x['value'], x['value2']] for x in reduce(lambda x, y: x if y in x else x + [y], [[]] + values)]
-			for status, pid in values_uni:
-				name = list(self.DB.select('party_info', 'value', 'party_id', pid)[0].values())[0]
-				newAction = QAction(name, self)
-				newAction.triggered.connect(partial(self.show_party_info, status, pid))
-				sub_menu.addAction(newAction)
-
-			sub_menu = self.case_info_menu.addMenu('当事人（复制）..')
+			sub_menu = self.case_info_menu.addMenu('当事人..')
 			sub_menu.setMinimumWidth(100)
 			newAction = QAction("全部", self)
 			newAction.triggered.connect(partial(self.copy_party_info_all, case))
@@ -603,6 +613,22 @@ class ui_main(QMainWindow, Ui_MainWindow):
 				name = list(self.DB.select('contact_info', 'value', 'contact_id', pid)[0].values())[0]
 				newAction = QAction(name, self)
 				newAction.triggered.connect(partial(self.copy_mail_address, pid))
+				sub_menu.addAction(newAction)
+
+
+			self.case_info_menu.addSeparator()
+			newAction = QAction("----查看----".center(20), self)
+			self.case_info_menu.addAction(newAction)
+			sub_menu = self.case_info_menu.addMenu('当事人..')
+			sub_menu.setMinimumWidth(100)
+
+			values = self.DB.select_multi_condition('case_info', 'value, value2', f"case_name = '{self.trans(case)}' "\
+				f"and value_form = 'party'")
+			values_uni = [[x['value'], x['value2']] for x in reduce(lambda x, y: x if y in x else x + [y], [[]] + values)]
+			for status, pid in values_uni:
+				name = list(self.DB.select('party_info', 'value', 'party_id', pid)[0].values())[0]
+				newAction = QAction(name, self)
+				newAction.triggered.connect(partial(self.show_party_info, status, pid))
 				sub_menu.addAction(newAction)
 		
 		self.case_info_menu.move(QCursor().pos())

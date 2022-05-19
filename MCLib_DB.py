@@ -299,7 +299,7 @@ class DataBase(object):
 		else:
 			self.update('case_info', 'case_name', case_name, 'case_name', new_name)
 			self.update('todo_list', 'case_name', case_name, 'case_name', new_name)
-			self.update('event', 'case_name', case_name, 'case_name', new_name)
+			self.update('event_list', 'case_name', case_name, 'case_name', new_name)
 
 	def delete_case(self, case_name):
 		self.delete('case_list', 'case_name', case_name)
@@ -456,7 +456,7 @@ class DataBase(object):
 			<body>
 		''' % (color1['value'], color2['value'])
 		s = s + f"<h3>{case}</h3>"
-		s = s + f"<h4>{project}</h4>"
+		s = s + f"<h4>项目：{project}</h4>"
 
 		s = s + "<table width = '100%'>"
 		s = s + "<tr><td class = 'mid' colspan = '2'> 基本信息 </td></tr>"
