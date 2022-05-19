@@ -594,8 +594,16 @@ class DataBase(object):
 			if t[0] in ('身份证号', '法定代表人', '地址', '注册地址', '居住地址', '联系电话'):
 				if t[1]:
 					s = s + f"{t[0]}：{t[1]}\n"
-				else:
-					s = s + f"{t[0]}：\n"
+	#			else:
+	#				s = s + f"{t[0]}：\n"
+		return s
+
+	def get_party_info(self, pid):
+		infos = [[x['item'], x['value']] for x in self.select('party_info', 'item, value', 'party_id', pid)]
+		s = ''
+		for t in infos:
+			if t[1]:
+				s = s + f"{t[0]}：{t[1]}\n\n"
 		return s
 
 	def generate_case_info(self, case, abbr):

@@ -546,6 +546,9 @@ class ui_main(QMainWindow, Ui_MainWindow):
 	def copy_party_info(self, status, pid):
 		QApplication.clipboard().setText(f"{status}：{self.DB.generate_party_info(pid)}")
 
+	def show_party_info(self, status, pid):
+		QMessageBox.about(self, status, self.DB.get_party_info(pid))
+
 	def copy_case_info(self, case, abbr):
 		QApplication.clipboard().setText(self.DB.generate_case_info(case, abbr))
 
@@ -563,7 +566,19 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			self.case_info_menu.addAction(newAction)
 
 			self.case_info_menu.addSeparator()
-			sub_menu = self.case_info_menu.addMenu('当事人..')
+			sub_menu = self.case_info_menu.addMenu('当事人（查看）..')
+			sub_menu.setMinimumWidth(100)
+
+			values = self.DB.select_multi_condition('case_info', 'value, value2', f"case_name = '{self.trans(case)}' "\
+				f"and value_form = 'party'")
+			values_uni = [[x['value'], x['value2']] for x in reduce(lambda x, y: x if y in x else x + [y], [[]] + values)]
+			for status, pid in values_uni:
+				name = list(self.DB.select('party_info', 'value', 'party_id', pid)[0].values())[0]
+				newAction = QAction(name, self)
+				newAction.triggered.connect(partial(self.show_party_info, status, pid))
+				sub_menu.addAction(newAction)
+
+			sub_menu = self.case_info_menu.addMenu('当事人（复制）..')
 			sub_menu.setMinimumWidth(100)
 			newAction = QAction("全部", self)
 			newAction.triggered.connect(partial(self.copy_party_info_all, case))
