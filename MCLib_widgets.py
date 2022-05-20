@@ -237,12 +237,15 @@ class ui_persons(QDialog, Ui_persons_window):
 			self.infos_view.setRowCount(len(item_list))
 			self.infos_view.setVerticalHeaderLabels([x['item'] for x in item_list])
 			self.infos_view.verticalHeader().setMinimumWidth(120)
-			all_values = self.DB.select(f"{self.which_type}_info", 'id, value', f"{self.which_type}_id", current_pid)
+			all_values = self.DB.select(f"{self.which_type}_info", 'id, item, value', f"{self.which_type}_id", current_pid)
 			
 			i = 0
-			for s in all_values:
-				self.infos_view.setItem(i, 0, QTableWidgetItem(str(s['id'])))
-				self.infos_view.setItem(i, 1, QTableWidgetItem(s['value']))
+			for item in item_list:
+				for s in all_values:
+					if s['item'] == item['item']:
+						self.infos_view.setItem(i, 0, QTableWidgetItem(str(s['id'])))
+						self.infos_view.setItem(i, 1, QTableWidgetItem(s['value']))
+						break
 				i = i + 1
 
 	def add_person(self):
@@ -323,10 +326,10 @@ class ui_persons(QDialog, Ui_persons_window):
 	def closeEvent(self, event):
 		self.close_signal.emit()
 
-class ui_party_contact(QDialog, Ui_party_contact_window):
+class ui_party_contact_template(QDialog, Ui_template_window):
 	close_signal = pyqtSignal()
 	def __init__(self, DB, which_type, parent = None):
-		super(ui_party_contact, self).__init__(parent)
+		super(ui_party_contact_template, self).__init__(parent)
 		self.setupUi(self)
 		self.DB = DB
 		self.which_type = which_type
@@ -347,6 +350,8 @@ class ui_party_contact(QDialog, Ui_party_contact_window):
 		self.delete_class_btn.clicked.connect(self.delete_class)
 		self.new_item_btn.clicked.connect(self.new_class_item)
 		self.delete_item_btn.clicked.connect(self.delete_class_item)
+		self.view_menu_init()
+		self.item_list_view.customContextMenuRequested.connect(partial(self.view_showmenu, self.view_menu))
 
 	def class_list_refresh(self):
 		self.class_list_view.clear()
@@ -358,14 +363,16 @@ class ui_party_contact(QDialog, Ui_party_contact_window):
 		self.item_list_view.setRowCount(0)
 		self.item_list_view.setColumnHidden(0, True)
 		self.item_list_view.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+		self.item_list_view.setColumnHidden(2, True)
 		if self.class_list_view.selectedItems():
 			current_class = self.class_list_view.selectedItems()[0].text()
-			item_list = self.DB.select(f"{self.which_type}_class", 'item', 'class', current_class)
+			item_list = self.DB.select(f"{self.which_type}_class", 'item, id', 'class', current_class)
 			for t in item_list:
 				rows = self.item_list_view.rowCount()
 				self.item_list_view.insertRow(rows)
 				self.item_list_view.setItem(rows, 0, QTableWidgetItem(current_class))
 				self.item_list_view.setItem(rows, 1, QTableWidgetItem(t['item']))
+				self.item_list_view.setItem(rows, 2, QTableWidgetItem(str(t['id'])))
 
 	def new_class(self):
 		self.class_list_view.itemSelectionChanged.disconnect()
@@ -418,6 +425,39 @@ class ui_party_contact(QDialog, Ui_party_contact_window):
 				if reply == QMessageBox.Yes:
 					self.DB.delete_party_contact_item(self.which_type, current_class, current_item)
 					self.item_list_refresh()
+	
+	def view_showmenu(self, menu):
+		menu.move(QCursor().pos())
+		menu.show()
+
+	def view_menu_init(self):
+		self.view_menu = QMenu(self.item_list_view)
+		newAction = QAction('上移', self)
+		newAction.triggered.connect(self.item_move_up)
+		self.view_menu.addAction(newAction)
+
+		newAction = QAction('下移', self)
+		newAction.triggered.connect(self.item_move_down)
+		self.view_menu.addAction(newAction)
+
+	def item_move_up(self):
+		if self.item_list_view.selectedItems():
+			c_row = self.item_list_view.currentRow()
+			if c_row > 1:
+				c_id = self.item_list_view.item(c_row, 2).text()
+				up_id = self.item_list_view.item(c_row - 1, 2).text()
+				self.DB.swap(f"{self.which_type}_class", 'item', c_id, up_id)
+				self.item_list_refresh()
+
+	def item_move_down(self):
+		if self.item_list_view.selectedItems():
+			c_row = self.item_list_view.currentRow()
+			rows = self.item_list_view.rowCount()
+			if c_row + 1 < rows and c_row > 0:
+				c_id = self.item_list_view.item(c_row, 2).text()
+				down_id = self.item_list_view.item(c_row + 1, 2).text()
+				self.DB.swap(f"{self.which_type}_class", 'item', c_id, down_id)
+				self.item_list_refresh()
 
 	def reject(self):
 		self.close()
@@ -425,38 +465,41 @@ class ui_party_contact(QDialog, Ui_party_contact_window):
 	def closeEvent(self, event):
 		self.close_signal.emit()
 
-class ui_type_item(QDialog, Ui_type_item_window):
+class ui_type_item_template(QDialog, Ui_template_window):
 	close_signal = pyqtSignal()
 	def __init__(self, DB, parent = None):
-		super(ui_type_item, self).__init__(parent)
+		super(ui_type_item_template, self).__init__(parent)
 		self.setupUi(self)
 		self.DB = DB
+		self.setWindowTitle("模板：案件类型")
 
 		self.type_list_refresh()
-		if self.type_list_view.item(0):
-			self.type_list_view.item(0).setSelected(True)
+		if self.class_list_view.item(0):
+			self.class_list_view.item(0).setSelected(True)
 		self.item_list_refresh()
-		self.type_list_view.itemSelectionChanged.connect(self.item_list_refresh)
+		self.class_list_view.itemSelectionChanged.connect(self.item_list_refresh)
 
-		self.new_type_btn.clicked.connect(self.new_type)
-		self.delete_type_btn.clicked.connect(self.delete_type)
+		self.new_class_btn.clicked.connect(self.new_type)
+		self.delete_class_btn.clicked.connect(self.delete_type)
 		self.new_item_btn.clicked.connect(self.new_type_item)
 		self.delete_item_btn.clicked.connect(self.delete_type_item)
-		self.item_up_btn.clicked.connect(self.item_move_up)
-		self.item_down_btn.clicked.connect(self.item_move_down)
+		self.view_menu_init()
+		self.item_list_view.customContextMenuRequested.connect(partial(self.view_showmenu, self.view_menu))
+
 
 	def type_list_refresh(self):
-		self.type_list_view.clear()
+		self.class_list_view.clear()
 		type_list = self.DB.select('type_list', 'type_name')
 		for t in type_list:
-			self.type_list_view.addItem(t['type_name'])
+			self.class_list_view.addItem(t['type_name'])
 
 	def item_list_refresh(self):
 		self.item_list_view.setRowCount(0)
 		self.item_list_view.setColumnHidden(1, True)
 		self.item_list_view.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-		if self.type_list_view.selectedItems():
-			current_type = self.type_list_view.selectedItems()[0].text()
+		self.item_list_view.setColumnHidden(2, True)
+		if self.class_list_view.selectedItems():
+			current_type = self.class_list_view.selectedItems()[0].text()
 			item_list = self.DB.select('case_type', 'id, item', 'type_name', current_type)
 			for t in item_list:
 				rows = self.item_list_view.rowCount()
@@ -473,12 +516,12 @@ class ui_type_item(QDialog, Ui_type_item_window):
 				QMessageBox.warning(self, "错误", "该类型已存在。")
 			else:
 				self.type_list_refresh()
-				rows = self.type_list_view.count()
-				self.type_list_view.item(rows - 1).setSelected(True)
+				rows = self.class_list_view.count()
+				self.class_list_view.item(rows - 1).setSelected(True)
 
 	def delete_type(self):
-		if self.type_list_view.selectedItems():
-			current_type = self.type_list_view.selectedItems()[0].text()
+		if self.class_list_view.selectedItems():
+			current_type = self.class_list_view.selectedItems()[0].text()
 			reply = QMessageBox.warning(self, "删除类型", f"是否删除名为“{current_type}”的类型？\n"\
 				f"将会删除对应的案件。", 
 				QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
@@ -487,8 +530,8 @@ class ui_type_item(QDialog, Ui_type_item_window):
 				self.type_list_refresh()
 
 	def new_type_item(self):
-		if self.type_list_view.selectedItems():
-			current_type = self.type_list_view.selectedItems()[0].text()
+		if self.class_list_view.selectedItems():
+			current_type = self.class_list_view.selectedItems()[0].text()
 			form_dict = {'纯文字': 'text', '当事人': 'party', '联系人': 'contact'}
 			forms = ('纯文字', '当事人', '联系人')
 			new_item_name, flag = QInputDialog.getText(self, current_type, "请输入新的字段名称：")
@@ -499,8 +542,8 @@ class ui_type_item(QDialog, Ui_type_item_window):
 		self.item_list_refresh()
 
 	def delete_type_item(self):
-		if self.type_list_view.selectedItems() and self.item_list_view.selectedItems():
-			current_type = self.type_list_view.selectedItems()[0].text()
+		if self.class_list_view.selectedItems() and self.item_list_view.selectedItems():
+			current_type = self.class_list_view.selectedItems()[0].text()
 			current_item = self.item_list_view.selectedItems()[0].text()
 			reply = QMessageBox.warning(self, "删除字段", f"是否删除“{current_type}”中的“{current_item}”？\n"\
 				f"将会删除相关案件的对应信息。", 
@@ -510,7 +553,7 @@ class ui_type_item(QDialog, Ui_type_item_window):
 				self.item_list_refresh()
 
 	def item_move_up(self):
-		if self.type_list_view.selectedItems() and self.item_list_view.selectedItems():
+		if self.class_list_view.selectedItems() and self.item_list_view.selectedItems():
 			c_row = self.item_list_view.currentRow()
 			if c_row > 0:
 				c_id = self.item_list_view.item(c_row, 1).text()
@@ -521,7 +564,7 @@ class ui_type_item(QDialog, Ui_type_item_window):
 				self.item_list_refresh()
 
 	def item_move_down(self):
-		if self.type_list_view.selectedItems() and self.item_list_view.selectedItems():
+		if self.class_list_view.selectedItems() and self.item_list_view.selectedItems():
 			c_row = self.item_list_view.currentRow()
 			rows = self.item_list_view.rowCount()
 			if c_row + 1 < rows:
@@ -531,6 +574,48 @@ class ui_type_item(QDialog, Ui_type_item_window):
 				self.DB.swap('case_type', 'item', c_id, down_id)
 				self.DB.swap('case_type', 'item_form', c_id, down_id)
 				self.item_list_refresh()
+
+	def view_showmenu(self, menu):
+		menu.move(QCursor().pos())
+		menu.show()
+
+	def view_menu_init(self):
+		self.view_menu = QMenu(self.item_list_view)
+		newAction = QAction('上移', self)
+		newAction.triggered.connect(self.item_move_up)
+		self.view_menu.addAction(newAction)
+
+		newAction = QAction('下移', self)
+		newAction.triggered.connect(self.item_move_down)
+		self.view_menu.addAction(newAction)
+
+	def reject(self):
+		self.close()
+
+	def closeEvent(self, event):
+		self.close_signal.emit()
+
+class ui_today_news(QDialog, Ui_today_news_window):
+	close_signal = pyqtSignal()
+	def __init__(self, DB, parent = None):
+		super(ui_today_news, self).__init__(parent)
+		self.setupUi(self)
+		self.message_view.setStyleSheet('background-color: rgb(255,255,255,150);')
+		self.message_view.setHtml(DB.generate_report_html())
+
+	def reject(self):
+		self.close()
+
+	def closeEvent(self, event):
+		self.close_signal.emit()
+
+class ui_person_info(QDialog, Ui_person_info_window):
+	close_signal = pyqtSignal()
+	def __init__(self, DB, which_type, which_class, pid, parent = None):
+		super(ui_person_info, self).__init__(parent)
+		self.setupUi(self)
+		self.message_view.setStyleSheet('background-color: rgb(255,255,255,150);')
+		self.message_view.setHtml(DB.generate_person_info_html(which_type, which_class, pid))
 
 	def reject(self):
 		self.close()

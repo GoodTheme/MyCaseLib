@@ -274,8 +274,6 @@ class DataBase(object):
 
 	def rename_project(self, project_name, new_name):
 		self.update('project_list', 'project_name', project_name, 'project_name', new_name)
-		for s in self.select_all('case_list', 'project_name', project_name):
-			self.update(s['case_name'], 'item', 'project_name', 'value', new_name)
 		self.update('case_list', 'project_name', project_name, 'project_name', new_name)
 
 	# 案件
@@ -328,6 +326,13 @@ class DataBase(object):
 		else:
 			self.insert(f"{which_type}_class", 'class', which_class)
 			self.update_latest(f"{which_type}_class", 'item', item_name)
+			li = []
+			for p in self.select(f"{which_type}_info", f"{which_type}_id, class", 'class', which_class):
+				if p[f"{which_type}_id"] not in li and p['class'] == which_class:
+					li.append(p[f"{which_type}_id"])
+					self.insert(f"{which_type}_info", f"{which_type}_id", p[f"{which_type}_id"])
+					self.update_latest(f"{which_type}_info", 'class', which_class)
+					self.update_latest(f"{which_type}_info", 'item', item_name)
 			return True
 
 	def new_person(self, which_type, which_class, name):
@@ -598,12 +603,35 @@ class DataBase(object):
 	#				s = s + f"{t[0]}：\n"
 		return s
 
-	def get_party_info(self, pid):
-		infos = [[x['item'], x['value']] for x in self.select('party_info', 'item, value', 'party_id', pid)]
-		s = ''
-		for t in infos:
-			if t[1]:
-				s = s + f"{t[0]}：{t[1]}\n\n"
+	def generate_person_info_html(self, which_type, which_class, pid):
+		s = '''
+			<head>
+			<style>
+			table {
+				border-collapse: collapse;
+			}
+			td {
+				background-color: #edeef1;
+				border: 1px solid #ddd;
+				padding: 6px;
+			}
+			</style>
+			</head>
+			<body>
+		'''
+
+		item_list = self.select(f"{which_type}_class", 'item', 'class', which_class)
+		all_values = self.select(f"{which_type}_info", 'item, value', f"{which_type}_id", pid)
+			
+		s = s + f"<table> <tr><td colspan = '2'> {which_class} </td></tr>"
+		for item in item_list:
+			for t in all_values:
+				if t['item'] == item['item']:
+					if t['value']:
+						s = s + f"<tr> <td width = '35%'>{t['item']}</td> "\
+						f"<td width = '65%'>{t['value']}</td> </tr>"
+					break
+		s =s + "</table> </body>"
 		return s
 
 	def generate_case_info(self, case, abbr):
@@ -611,7 +639,6 @@ class DataBase(object):
 		project = self.select('case_list', 'project_name', 'case_name', case)[0]['project_name']
 		case_type = self.select('case_list', 'case_type', 'case_name', case)[0]['case_type']
 		type_item = self.select_all('case_type', 'type_name', case_type)
-		
 		s = ''
 		last_status = ''
 		flag = False
@@ -641,7 +668,7 @@ class DataBase(object):
 					if abbr:
 						abbreviation = [x['value'] for x in infos if x['item'] == '简称'] + [[]][0]
 						if abbreviation and abbreviation[0]:
-							s = s + f"(以下简称“{abbreviation[0]}”)"
+							s = s + f"（以下简称“{abbreviation[0]}”）"
 
 		if '仲裁协议' in [x['item'] for x in type_item]:
 			contract = [x['value'] for x in case_info if x['item'] == '仲裁协议'] + [[]][0]
@@ -649,7 +676,9 @@ class DataBase(object):
 				if abbr:
 					abbreviation = [x['value'] for x in case_info if x['item'] == '仲裁协议简称'] + [[]][0]
 					if abbreviation and abbreviation[0]:
-						s = s + f"之间因{contract[0]}(以下简称“{abbreviation[0]}”)所引起的争议仲裁案"
+						s = s + f"之间因{contract[0]}（以下简称“{abbreviation[0]}”）所引起的争议仲裁案"
+					else:
+						s = s + f"之间因{contract[0]}所引起的争议仲裁案"
 				else:
 					s = s + f"之间因{contract[0]}所引起的争议仲裁案"
 		elif '案由' in [x['item'] for x in type_item]:
