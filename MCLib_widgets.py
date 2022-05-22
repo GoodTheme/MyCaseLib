@@ -614,8 +614,47 @@ class ui_person_info(QDialog, Ui_person_info_window):
 	def __init__(self, DB, which_type, which_class, pid, parent = None):
 		super(ui_person_info, self).__init__(parent)
 		self.setupUi(self)
-		self.message_view.setStyleSheet('background-color: rgb(255,255,255,150);')
-		self.message_view.setHtml(DB.generate_person_info_html(which_type, which_class, pid))
+		self.DB = DB
+		self.which_type = which_type
+		self.which_class = which_class
+		self.pid = pid
+		
+		name = self.DB.select(f"{self.which_type}_info", 'value', f"{self.which_type}_id", self.pid)[0]['value']
+		self.setWindowTitle(name)
+		self.infos_view.cellChanged.connect(self.edit_info)
+		self.infos_view_refresh()
+		
+	def infos_view_refresh(self):
+		self.infos_view.setRowCount(0)
+		self.infos_view.setColumnHidden(0, True)
+		self.infos_view.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+
+		current_pid = self.pid
+		current_class = self.which_class
+		item_list = self.DB.select(f"{self.which_type}_class", 'item', 'class', current_class)
+
+		self.infos_view.setRowCount(len(item_list))
+		self.infos_view.setVerticalHeaderLabels([x['item'] for x in item_list])
+		self.infos_view.verticalHeader().setMinimumWidth(120)
+		all_values = self.DB.select(f"{self.which_type}_info", 'id, item, value', f"{self.which_type}_id", current_pid)
+			
+		i = 0
+		for item in item_list:
+			for s in all_values:
+				if s['item'] == item['item']:
+					self.infos_view.setItem(i, 0, QTableWidgetItem(str(s['id'])))
+					self.infos_view.setItem(i, 1, QTableWidgetItem(s['value']))
+					break
+			i = i + 1
+
+	def edit_info(self, row_n, col_n):
+		self.infos_view.cellChanged.disconnect()
+		if self.infos_view.selectedItems():
+			pid = self.infos_view.item(row_n, 0).text()
+			new_data = self.infos_view.item(row_n, 1).text()
+			self.DB.update(f"{self.which_type}_info", 'id', pid, 'value', new_data)
+			self.infos_view_refresh()
+		self.infos_view.cellChanged.connect(self.edit_info)
 
 	def reject(self):
 		self.close()

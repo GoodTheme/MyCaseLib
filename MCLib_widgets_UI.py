@@ -350,15 +350,24 @@ class Ui_person_info_window(object):
         person_info_window.resize(550, 400)
         self.gridLayout = QtWidgets.QGridLayout(person_info_window)
         self.gridLayout.setObjectName("gridLayout")
-        self.message_view = QtWidgets.QTextBrowser(person_info_window)
-        self.message_view.setObjectName("message_view")
-        self.gridLayout.addWidget(self.message_view, 0, 0, 1, 1)
-
+        self.infos_view = QtWidgets.QTableWidget(person_info_window)
+        font = QtGui.QFont()
+        font.setPointSize(13)
+        self.infos_view.setFont(font)
+        self.infos_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.infos_view.setColumnCount(2)
+        self.infos_view.setObjectName("infos_view")
+        self.infos_view.setRowCount(0)
+        self.infos_view.horizontalHeader().setVisible(False)
+        self.infos_view.verticalHeader().setCascadingSectionResizes(True)
+        self.infos_view.verticalHeader().setDefaultSectionSize(30)
+        self.infos_view.verticalHeader().setMinimumSectionSize(30)
+        self.gridLayout.addWidget(self.infos_view, 0, 0, 1, 1)
         self.retranslateUi(person_info_window)
         QtCore.QMetaObject.connectSlotsByName(person_info_window)
 
     def retranslateUi(self, person_info_window):
         _translate = QtCore.QCoreApplication.translate
-        person_info_window.setWindowTitle(_translate("person_info_window", "信息"))
+        person_info_window.setWindowTitle(_translate("person_info_window", "Form"))
 
 

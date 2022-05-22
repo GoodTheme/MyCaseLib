@@ -21,7 +21,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		self.DB = DB
 		self.DB_PATH = DB_PATH
 		self.setWindowIcon(QtGui.QIcon('MCLib_icon.png'))
-		self.version = 'v 0.1b'
+		self.version = 'v 0.2'
 		try:
 			self.init()
 		except:
@@ -253,6 +253,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 	def show_person_info(self, which_type, which_class, pid):
 		self.window_second = ui_person_info(DB = self.DB, which_type = which_type, which_class = which_class, pid = pid, )
 		self.window_second.show()
+		self.window_second.close_signal.connect(self.case_info_refresh)
 
 	def show_about(self):
 		QMessageBox.about(self, 'MyCaseLib', f"MyCaseLib\n\n版本：{self.version}")
@@ -404,6 +405,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 				QMessageBox.warning(self, "错误", "该项目已存在。")
 			finally:
 				self.p_c_tree_refresh()
+				self.case_info_refresh()
 		self.p_c_treeview.itemSelectionChanged.connect(self.case_things_refresh)
 
 	def edit_project_num(self):
@@ -503,6 +505,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 				if flag:
 					self.DB.change_project(current_case, current_project, new_project)
 		self.p_c_tree_refresh()
+		self.case_info_refresh()
 		self.p_c_treeview.itemSelectionChanged.connect(self.case_things_refresh)
 
 	def edit_case_name(self, n_name):
@@ -518,6 +521,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 					self.DB.rename_case(project_name, n_name, case_name)
 
 		self.p_c_tree_refresh()
+		self.case_info_refresh()
 		self.p_c_treeview.itemSelectionChanged.connect(self.case_things_refresh)
 
 	def edit_case_value(self, case, item, item_form):
@@ -584,7 +588,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			case = current.data()
 
 			self.case_info_menu = QMenu(self.info_view)
-			newAction = QAction("----复制----".center(15), self)
+			newAction = QAction("----复制----  ".center(20), self)
 			self.case_info_menu.addAction(newAction)
 
 			sub_menu = self.case_info_menu.addMenu('案件信息..')
@@ -632,7 +636,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 				sub_menu.addAction(newAction)
 
 			self.case_info_menu.addSeparator()
-			newAction = QAction("----查看----".center(15), self)
+			newAction = QAction("----查看----  ".center(20), self)
 			self.case_info_menu.addAction(newAction)
 
 			sub_menu = self.case_info_menu.addMenu('当事人..')
@@ -663,6 +667,20 @@ class ui_main(QMainWindow, Ui_MainWindow):
 					sub_menu.addAction(newAction)
 			else:
 				newAction = QAction("（无）", self)
+				sub_menu.addAction(newAction)
+
+			self.case_info_menu.addSeparator()
+			sub_menu = self.case_info_menu.addMenu('编辑内容')
+			sub_menu.setMinimumWidth(100)
+			case = self.p_c_treeview.currentIndex().data()
+			case_type = self.DB.select('case_list', 'case_type', 'case_name', case)[0]['case_type']
+			items = self.DB.select('case_type', 'item, item_form', 'type_name', case_type)
+			newAction = QAction("案件名", self)
+			newAction.triggered.connect(partial(self.edit_case_name, case))
+			sub_menu.addAction(newAction)
+			for s in items:
+				newAction = QAction(s['item'], self)
+				newAction.triggered.connect(partial(self.edit_case_value, case, s['item'], s['item_form']))
 				sub_menu.addAction(newAction)
 		
 		self.case_info_menu.move(QCursor().pos())

@@ -439,7 +439,7 @@ class DataBase(object):
 				border-collapse: collapse;
 			}
 			td {
-				font-size: 13px;
+				
 				padding: 5px;
 				border-style: solid;
 				margin-top: 8px;
@@ -469,7 +469,7 @@ class DataBase(object):
 			this_item = i['item']
 			items = self.select_multi_condition('case_info', "id, value_form, value, value2",
 				f"case_name = '{self.trans(case)}' and item = '{self.trans(this_item)}'")
-			if items:
+			if items and items[0]['value']:
 				value_form = items[0]['value_form']
 				for k in items:
 					s = s + f"<tr> <td class = 'left' width = '30%'> {this_item} </td>"\
@@ -478,7 +478,7 @@ class DataBase(object):
 			this_item = i['item']
 			items = self.select_multi_condition('case_info', "id, value_form, value, value2",
 				f"case_name = '{self.trans(case)}' and item = '{self.trans(this_item)}'")
-			if items:
+			if items and items[0]['value']:
 				value_form = items[0]['value_form']
 				s = s + f"<tr><td class = 'mid' colspan = '2'> {this_item} </td></tr>"
 				for k in items:
