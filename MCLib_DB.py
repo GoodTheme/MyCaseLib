@@ -481,10 +481,22 @@ class DataBase(object):
 			if items and items[0]['value']:
 				value_form = items[0]['value_form']
 				s = s + f"<tr><td class = 'mid' colspan = '2'> {this_item} </td></tr>"
-				for k in items:
-					name = self.select(f"{value_form}_info", 'value', f"{value_form}_id", k['value2'])[0]['value']
-					s = s + f"<tr> <td class = 'left'> {k['value']} </td>"\
-					f"<td class ='right'> {name} </td></tr>"
+				if value_form == 'contact':
+					for k in items:
+						name = self.select(f"{value_form}_info", 'value', f"{value_form}_id", k['value2'])[0]['value']
+						p = self.select_multi_condition(f"{value_form}_info", 'value', 
+							f"{value_form}_id = '{str(k['value2'])}' and item = '联系电话'")
+						if p and p[0]['value']:
+							s = s + f"<tr> <td class = 'left'> {k['value']} </td>"\
+							f"<td class ='right'> {name} ({p[0]['value']}) </td></tr>"
+						else:
+							s = s + f"<tr> <td class = 'left'> {k['value']} </td>"\
+							f"<td class ='right'> {name} </td></tr>"
+				else:
+					for k in items:
+						name = self.select(f"{value_form}_info", 'value', f"{value_form}_id", k['value2'])[0]['value']
+						s = s + f"<tr> <td class = 'left'> {k['value']} </td>"\
+						f"<td class ='right'> {name} </td></tr>"
 		s = s + "<table> </body>"
 		return s
 

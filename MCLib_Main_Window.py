@@ -21,7 +21,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		self.DB = DB
 		self.DB_PATH = DB_PATH
 		self.setWindowIcon(QtGui.QIcon('MCLib_icon.png'))
-		self.version = 'v 0.2'
+		self.version = 'v 0.3'
 		try:
 			self.init()
 		except:
@@ -188,22 +188,30 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			self.p_c_menu.addSeparator()
 
 		elif mark == 2:
-			sub_menu = self.p_c_menu.addMenu('编辑内容')
-			sub_menu.setMinimumWidth(100)
 			case = self.p_c_treeview.currentIndex().data()
-			case_type = self.DB.select('case_list', 'case_type', 'case_name', case)[0]['case_type']
-			items = self.DB.select('case_type', 'item, item_form', 'type_name', case_type)
-			newAction = QAction("案件名", self)
+			newAction = QAction("修改案件名", self)
 			newAction.triggered.connect(partial(self.edit_case_name, case))
-			sub_menu.addAction(newAction)
-			for s in items:
-				newAction = QAction(s['item'], self)
-				newAction.triggered.connect(partial(self.edit_case_value, case, s['item'], s['item_form']))
-				sub_menu.addAction(newAction)
-
+			self.p_c_menu.addAction(newAction)
 			newAction = QAction('变更至项目', self)
 			newAction.triggered.connect(self.change_project)
 			self.p_c_menu.addAction(newAction)
+
+			sub_menu = self.p_c_menu.addMenu('编辑内容')
+			sub_menu.setMinimumWidth(100)
+			
+			newAction = QAction('基本信息', self)	
+			newAction.triggered.connect(partial(self.show_case_info_edit, case))
+			sub_menu.addAction(newAction)
+			sub_menu.addSeparator()
+
+			case_type = self.DB.select('case_list', 'case_type', 'case_name', case)[0]['case_type']
+			items = self.DB.select('case_type', 'item, item_form', 'type_name', case_type)
+			
+			for s in items:
+				if s['item_form'] != 'text':
+					newAction = QAction(s['item'], self)
+					newAction.triggered.connect(partial(self.edit_case_value, case, s['item'], s['item_form']))
+					sub_menu.addAction(newAction)
 
 			self.p_c_menu.addSeparator()
 			newAction = QAction('删除案件', self)
@@ -251,7 +259,12 @@ class ui_main(QMainWindow, Ui_MainWindow):
 #		self.window_second.activateWindow()
 
 	def show_person_info(self, which_type, which_class, pid):
-		self.window_second = ui_person_info(DB = self.DB, which_type = which_type, which_class = which_class, pid = pid, )
+		self.window_second = ui_person_info(DB = self.DB, which_type = which_type, which_class = which_class, pid = pid)
+		self.window_second.show()
+		self.window_second.close_signal.connect(self.case_info_refresh)
+
+	def show_case_info_edit(self, case_name):
+		self.window_second = ui_case_info_edit(DB = self.DB, case_name = case_name)
 		self.window_second.show()
 		self.window_second.close_signal.connect(self.case_info_refresh)
 
@@ -588,7 +601,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			case = current.data()
 
 			self.case_info_menu = QMenu(self.info_view)
-			newAction = QAction("----复制----  ".center(20), self)
+			newAction = QAction("-----复制-----  ".center(20), self)
 			self.case_info_menu.addAction(newAction)
 
 			sub_menu = self.case_info_menu.addMenu('案件信息..')
@@ -636,7 +649,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 				sub_menu.addAction(newAction)
 
 			self.case_info_menu.addSeparator()
-			newAction = QAction("----查看----  ".center(20), self)
+			newAction = QAction("---查看/编辑---  ".center(20), self)
 			self.case_info_menu.addAction(newAction)
 
 			sub_menu = self.case_info_menu.addMenu('当事人..')
@@ -651,8 +664,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 					newAction.triggered.connect(partial(self.show_person_info, 'party', which_class, pid))
 					sub_menu.addAction(newAction)
 			else:
-				newAction = QAction("（无）", self)
-				sub_menu.addAction(newAction)
+				sub_menu.addAction(QAction("（无）", self))
 
 			sub_menu = self.case_info_menu.addMenu('联系人..')
 			sub_menu.setMinimumWidth(100)
@@ -666,9 +678,13 @@ class ui_main(QMainWindow, Ui_MainWindow):
 					newAction.triggered.connect(partial(self.show_person_info, 'contact', which_class, pid))
 					sub_menu.addAction(newAction)
 			else:
-				newAction = QAction("（无）", self)
-				sub_menu.addAction(newAction)
+				sub_menu.addAction(QAction("（无）", self))
 
+			newAction = QAction('基本信息..', self)	
+			newAction.triggered.connect(partial(self.show_case_info_edit, case))
+			self.case_info_menu.addAction(newAction)
+
+			'''
 			self.case_info_menu.addSeparator()
 			sub_menu = self.case_info_menu.addMenu('编辑内容')
 			sub_menu.setMinimumWidth(100)
@@ -682,6 +698,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 				newAction = QAction(s['item'], self)
 				newAction.triggered.connect(partial(self.edit_case_value, case, s['item'], s['item_form']))
 				sub_menu.addAction(newAction)
+			'''
 		
 		self.case_info_menu.move(QCursor().pos())
 		self.case_info_menu.show()

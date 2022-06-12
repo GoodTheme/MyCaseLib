@@ -486,7 +486,6 @@ class ui_type_item_template(QDialog, Ui_template_window):
 		self.view_menu_init()
 		self.item_list_view.customContextMenuRequested.connect(partial(self.view_showmenu, self.view_menu))
 
-
 	def type_list_refresh(self):
 		self.class_list_view.clear()
 		type_list = self.DB.select('type_list', 'type_name')
@@ -653,6 +652,69 @@ class ui_person_info(QDialog, Ui_person_info_window):
 			pid = self.infos_view.item(row_n, 0).text()
 			new_data = self.infos_view.item(row_n, 1).text()
 			self.DB.update(f"{self.which_type}_info", 'id', pid, 'value', new_data)
+			self.infos_view_refresh()
+		self.infos_view.cellChanged.connect(self.edit_info)
+
+	def reject(self):
+		self.close()
+
+	def closeEvent(self, event):
+		self.close_signal.emit()
+
+class ui_case_info_edit(QDialog, Ui_person_info_window):
+	close_signal = pyqtSignal()
+	def __init__(self, DB, case_name, parent = None):
+		super(ui_case_info_edit, self).__init__(parent)
+		self.setupUi(self)
+		self.DB = DB
+		self.case_name = case_name
+		self.type_name = self.DB.select('case_list', 'case_type', 'case_name', self.case_name)[0]['case_type']
+		
+		self.setWindowTitle(case_name)
+		self.infos_view.cellChanged.connect(self.edit_info)
+		self.infos_view_refresh()
+		
+	def trans(self, s):
+		if not s:
+			return ''
+		trans = ''
+		for t in str(s):
+			trans = trans + t if t != "'" else trans + "''"
+		return trans
+
+	def infos_view_refresh(self):
+		self.infos_view.setRowCount(0)
+		self.infos_view.setColumnHidden(0, True)
+		self.infos_view.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+		item_list = self.DB.select_multi_condition('case_type', 'item', 
+			f"type_name = '{self.trans(self.type_name)}' and item_form = 'text'")
+		
+		self.infos_view.setRowCount(len(item_list))
+		self.infos_view.setVerticalHeaderLabels([x['item'] for x in item_list])
+		self.infos_view.verticalHeader().setMinimumWidth(120)
+		all_values = self.DB.select('case_info', 'id, item, value', 'case_name', self.case_name)
+					
+		i = 0
+		for item in item_list:
+			self.infos_view.setItem(i, 0, QTableWidgetItem(item['item']))
+			for s in all_values:
+				if s['item'] == item['item']:
+					self.infos_view.setItem(i, 1, QTableWidgetItem(s['value']))
+					break
+			i = i + 1
+
+	def edit_info(self, row_n, col_n):
+		self.infos_view.cellChanged.disconnect()
+		if self.infos_view.selectedItems():
+			item = self.infos_view.item(row_n, 0).text()
+			new_data = self.infos_view.item(row_n, 1).text()
+			current = self.DB.select_multi_condition('case_info', 'value', 
+				f"case_name = '{self.trans(self.case_name)}' and item = '{self.trans(item)}'")
+			if current:
+				self.DB.update_multi_condition('case_info', f"case_name = '{self.trans(self.case_name)}' and "\
+					f"item = '{self.trans(item)}'", 'value', new_data)
+			else:
+				self.DB.insert_value(self.case_name, item, 'text', new_data)
 			self.infos_view_refresh()
 		self.infos_view.cellChanged.connect(self.edit_info)
 

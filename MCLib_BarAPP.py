@@ -74,9 +74,14 @@ class MenuBarApp(rumps.App):
 		new_menu = [rumps.MenuItem("主界面", callback = self.show_main_window)]
 		new_menu.append(rumps.MenuItem("今日简报", callback = self.show_today_news))
 		new_menu.append(None)
+		
+		order_dict = {'添加时间（正序）': 'id asc', 
+		'添加时间（倒序）': 'id desc',  
+		'标签（时间-正）': 'label, id asc', '标签（时间-倒）': 'label, id desc'}
+		by_order = order_dict[self.DB.select('profile', 'value')[0]['value']]
+		project_list = self.DB.select_by_order('project_list', 'project_name', by_order)
 
 		menu = [rumps.MenuItem("项目文件夹")]
-		project_list = self.DB.select('project_list', 'project_name')
 		sub_menu = [rumps.MenuItem("更新列表..", callback = self.menu_refresh)]
 		sub_menu.append(None)
 
@@ -104,9 +109,10 @@ class MenuBarApp(rumps.App):
 		self.menu.update(new_menu)
 
 	def open_file(self, project_name, _):
-		project_path = self.DB.select('project_list', 'file_path', 'project_name', 
-			project_name)[0]['file_path']
-		if project_path:
-			subprocess.call(["open",project_path])
+		if self.DB.select('project_list', 'file_path', 'project_name', project_name):
+			project_path = self.DB.select('project_list', 'file_path', 'project_name', 
+				project_name)[0]['file_path']
+			if project_path:
+				subprocess.call(["open",project_path])
 
 
