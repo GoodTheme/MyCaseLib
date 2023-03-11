@@ -255,17 +255,18 @@ class DataBase(object):
 		self.delete_multi_condition('case_type', f"type_name = '{self.trans(type_name)}' and item = '{self.trans(item_name)}'")
 
 	# 项目
-	def new_project(self, project_name, project_num = None, file_path = None):
+	def new_project(self, project_name, project_num = None, file_path = None, label = None):
 		try:
 			self.insert('project_list', 'project_name', project_name)
 		except:
 			pass
 		else:
-			self.update_latest('project_list', 'label', '1')
 			if project_num:
 				self.update_latest('project_list', 'project_num', project_num)
 			if file_path:
 				self.update_latest('project_list', 'file_path', file_path)
+			if label:
+				self.update_latest('project_list', 'label', label)
 
 	def delete_project(self, project_name):
 		for s in self.select_all('case_list', 'project_name', project_name):
@@ -407,7 +408,7 @@ class DataBase(object):
 		project_info = self.select_all('project_list', 'project_name', project)
 		if project_info and project_info[0]['project_num']:
 			s = s + f"<p>项目号：{project_info[0]['project_num']}</p>"
-		self.labels = ('特殊', '进行中', '搁置', '已结', '其他')
+		self.labels = ('进行中（置顶）', '进行中', '搁置', '已结', '其他', '案例')
 		s = s + f"<p>当前状态：{self.labels[int(project_info[0]['label'])]}</p>"
 		s = s + "</body>"
 		return s

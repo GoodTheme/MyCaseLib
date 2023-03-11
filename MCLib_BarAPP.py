@@ -79,15 +79,16 @@ class MenuBarApp(rumps.App):
 		'添加时间（倒序）': 'id desc',  
 		'标签（时间-正）': 'label, id asc', '标签（时间-倒）': 'label, id desc'}
 		by_order = order_dict[self.DB.select('profile', 'value')[0]['value']]
-		project_list = self.DB.select_by_order('project_list', 'project_name', by_order)
+		project_list = self.DB.select_by_order('project_list', 'project_name, label', by_order)
 
 		menu = [rumps.MenuItem("项目文件夹")]
 		sub_menu = [rumps.MenuItem("更新列表..", callback = self.menu_refresh)]
 		sub_menu.append(None)
 
 		for project in project_list:
-			sub_menu.append(rumps.MenuItem(project['project_name'], 
-				callback = partial(self.open_file, project['project_name'])))
+			if project['label'] in '01':
+				sub_menu.append(rumps.MenuItem(project['project_name'], 
+					callback = partial(self.open_file, project['project_name'])))
 		menu.append(sub_menu)
 		new_menu.append(menu)
 		new_menu.append(None)

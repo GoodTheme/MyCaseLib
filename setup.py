@@ -15,17 +15,9 @@ DATA_FILES = [
 
 OPTIONS = {
     'iconfile': 'MCLib_icon.png',
-    'argv_emulation': True,
     'includes': [
     'rumps', 
-    'PyQt5', 
-    'sqlite3', 
-    'os', 
-    'datetime', 
-    'functools', 
-    'shutil',
-    'subprocess',
-    'sys'
+    'PyQt5'
     ]
 }
 

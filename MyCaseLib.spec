@@ -8,7 +8,7 @@ a = Analysis(
     ['MyCaseLib.py'],
     pathex=[],
     binaries=[],
-    datas=[('MCLib_icon.png', '.'), ('example', '.'), ('MCLib_Bar_icon.png', '.'), ],
+    datas=[('MCLib_icon.png', '.'), ('example', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -35,17 +35,10 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='MCLib_icon.png',
-)
-app = BUNDLE(
-    exe,
-    name='MyCaseLib.app',
-    icon=None,
-    bundle_identifier=None,
 )

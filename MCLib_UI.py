@@ -274,7 +274,7 @@ class Ui_MainWindow(object):
         self.menu_new_case.setText(_translate("MainWindow", "新的案件"))
         self.menu_contact.setText(_translate("MainWindow", "联系人库"))
         self.menu_parties.setText(_translate("MainWindow", "当事人"))
-        self.menu_contacts.setText(_translate("MainWindow", "自然人"))
+        self.menu_contacts.setText(_translate("MainWindow", "联系人"))
         self.menu_manage_type_item.setText(_translate("MainWindow", "案件类型"))
         self.menu_manage_party_class.setText(_translate("MainWindow", "当事人"))
         self.menu_manage_contact_class.setText(_translate("MainWindow", "联系人"))

@@ -355,7 +355,7 @@ class Ui_person_info_window(object):
         font.setPointSize(13)
         self.infos_view.setFont(font)
         self.infos_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.infos_view.setColumnCount(2)
+        self.infos_view.setColumnCount(3)
         self.infos_view.setObjectName("infos_view")
         self.infos_view.setRowCount(0)
         self.infos_view.horizontalHeader().setVisible(False)

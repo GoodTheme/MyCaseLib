@@ -9,9 +9,9 @@ from functools import partial, reduce
 from datetime import datetime
 from shutil import copyfile
 
-from AppKit import NSApp, NSApplicationActivationPolicyAccessory
 from MCLib_UI import Ui_MainWindow
 from MCLib_widgets import *
+from AppKit import NSApp, NSApplicationActivationPolicyAccessory
 
 class ui_main(QMainWindow, Ui_MainWindow):
 	def __init__(self, DB, DB_PATH, parent = None):
@@ -40,13 +40,19 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		self.main_menu_init()
 
 	def closeEvent(self, event):
-		NSApp.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
+		if os.name == 'posix':
+			NSApp.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
+		else:
+			pass
 
 	def read_profile(self):
 		self.p_c_order, self.default_filepath = [x['value'] for x in self.DB.select('profile', 'value')][0:2]
 		
 	def p_c_tree_init(self):
-		self.search_box.addItems(['全部', '信息', '待办', '记录', '记事'])
+		self.search_box.addItems(['全部案件  ', '在办', '其他', '案例库'])
+		self.search_box.insertSeparator(3)
+		self.search_box.setCurrentIndex(1)
+		self.search_box.currentTextChanged.connect(self.p_c_tree_refresh)
 		self.search_bar.textChanged.connect(self.search_result)
 		self.p_c_treeview.itemSelectionChanged.connect(self.case_things_refresh)
 		self.p_c_treeview.customContextMenuRequested.connect(self.p_c_showmenu)
@@ -106,7 +112,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 
 	def p_c_tree_menu(self, mark):
 		self.p_c_menu = QMenu(self.p_c_treeview)
-
+		
 		if mark == 0:
 			newAction = QAction('新的项目', self)
 			newAction.triggered.connect(self.show_new_project)
@@ -145,7 +151,10 @@ class ui_main(QMainWindow, Ui_MainWindow):
 
 
 		elif mark == 1:
-			newAction = QAction('从项目新建案件', self)
+			newAction = QAction('新的项目', self)
+			newAction.triggered.connect(self.show_new_project)
+			self.p_c_menu.addAction(newAction)
+			newAction = QAction('新的案件', self)
 			newAction.triggered.connect(self.new_case)
 			self.p_c_menu.addAction(newAction)
 			self.p_c_menu.addSeparator()
@@ -164,7 +173,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 
 			sub_menu = self.p_c_menu.addMenu('设置标签')
 			sub_menu.setMinimumWidth(100)
-			for i in range(5):
+			for i in range(6):
 				current_project = self.p_c_treeview.currentIndex().data()
 				current_label = self.DB.select('project_list', 'label', 'project_name', current_project)[0]['label']
 				newAction = QAction(self.labels[i], self, checkable = True)
@@ -188,6 +197,14 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			self.p_c_menu.addSeparator()
 
 		elif mark == 2:
+			newAction = QAction('新的项目', self)
+			newAction.triggered.connect(self.show_new_project)
+			self.p_c_menu.addAction(newAction)
+			newAction = QAction('新的案件', self)
+			newAction.triggered.connect(self.new_case)
+			self.p_c_menu.addAction(newAction)
+			self.p_c_menu.addSeparator()
+
 			case = self.p_c_treeview.currentIndex().data()
 			newAction = QAction("修改案件名", self)
 			newAction.triggered.connect(partial(self.edit_case_name, case))
@@ -226,8 +243,18 @@ class ui_main(QMainWindow, Ui_MainWindow):
 
 	def show_new_project(self):
 		self.p_c_treeview.itemSelectionChanged.disconnect()
-		self.window_second = ui_new_project(DB = self.DB)
-		self.window_second.show()
+		messagebox = QMessageBox(QMessageBox.Question, '项目类型', '创建在办案件项目，还是检索案例报告？')
+		right_button = messagebox.addButton(self.tr('在办项目'), QMessageBox.YesRole)
+		left_button = messagebox.addButton(self.tr('案例报告'), QMessageBox.NoRole)
+		messagebox.exec_()
+		#which_type = QMessageBox.question(self, '项目类型', '创建在办案件项目（Yes），还是检索案例报告（No）？',\
+		# QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+		if messagebox.clickedButton() == right_button:
+			self.window_second = ui_new_project(DB = self.DB, label = 1)
+			self.window_second.show()
+		else:
+			self.window_second = ui_new_project(DB = self.DB, label = 5)
+			self.window_second.show()
 		self.window_second.close_signal.connect(self.close_widgets)
 
 	def show_manage_type(self):
@@ -280,36 +307,44 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			trans = trans + t if t != "'" else trans + "''"
 		return trans
 
+	# 删去分类检索功能
 	def search_result(self):
 		self.search_bar.textChanged.disconnect()
 		keywords = self.search_bar.text()
-		key_type = self.search_box.currentText()
-		if keywords == 'showexecute':
+		#key_type = self.search_box.currentText()
+		if keywords == 'execute_':
 			self.show_execute()
-		elif keywords:
-			self.p_c_tree_refresh(keywords, key_type)
+		#elif keywords:
+		#	self.p_c_tree_refresh(keywords, key_type)
 		else:
 			self.p_c_tree_refresh()
 		self.search_bar.textChanged.connect(self.search_result)
 
-	def p_c_tree_refresh(self, keywords = None, key_type = None):
+	# 删去检索中的类型功能，改为标签
+	def p_c_tree_refresh(self):
 		order_dict = {'添加时间（正序）': 'id asc', 
 		'添加时间（倒序）': 'id desc',  
 		'标签（时间-正）': 'label, id asc', '标签（时间-倒）': 'label, id desc'}
 		by_order = order_dict[self.p_c_order]
+		keywords = self.search_bar.text()
+		current_label = self.search_box.currentText()
 
 		self.p_c_treeview.clear()
 		self.p_c_treeview.setColumnCount(1)
 		project_list = self.DB.select_by_order('project_list', 'project_name', by_order)
 		for project in project_list:
-			if keywords:
-				case_selected = []
-				if key_type == '全部' or key_type == '信息':
+			project_label = self.DB.select('project_list', 'label', 'project_name', project['project_name'])[0]['label']
+			if current_label == '全部案件  ' and project_label in '01234' or current_label == '在办' and project_label in '01' or \
+			current_label == '其他' and project_label in '234' or current_label == '案例库' and project_label in '5':
+				if keywords:
+					case_selected = []
 					case_list = self.DB.select('case_list', 'case_name', 'project_name', project['project_name'])
 					for case in case_list:
 						case_infos = self.DB.select_all('case_info', 'case_name', case['case_name'])
 						flag = False
-						if isinstance(case['case_name'], str) and case['case_name'].find(keywords) != -1:
+						if isinstance(project['project_name'], str) and project['project_name'].find(keywords) != -1:
+							flag = True
+						elif isinstance(case['case_name'], str) and case['case_name'].find(keywords) != -1:
 							flag = True
 						else:
 							for t in case_infos:
@@ -324,7 +359,6 @@ class ui_main(QMainWindow, Ui_MainWindow):
 						if flag and case not in case_selected:
 							case_selected.append(case)
 
-				if key_type == '全部' or key_type == '待办':
 					todos = self.DB.select('todo_list', 'case_name, date, things', 
 						'project_name', project['project_name'])
 					for todo in todos:
@@ -332,7 +366,6 @@ class ui_main(QMainWindow, Ui_MainWindow):
 							if {'case_name': todo['case_name']} not in case_selected:
 								case_selected.append({'case_name': todo['case_name']})
 
-				if key_type == '全部' or key_type == '记录':
 					events = self.DB.select('event_list', 'case_name, date, things', 
 						'project_name', project['project_name'])
 					for event in events:
@@ -340,7 +373,6 @@ class ui_main(QMainWindow, Ui_MainWindow):
 							if {'case_name': event['case_name']} not in case_selected:
 								case_selected.append({'case_name': event['case_name']})
 
-				if key_type == '全部' or key_type == '记事':
 					notes = self.DB.select('case_list', 'case_name, notepad_text', 
 						'project_name', project['project_name'])
 					for note in notes:
@@ -348,20 +380,20 @@ class ui_main(QMainWindow, Ui_MainWindow):
 							if {'case_name': note['case_name']} not in case_selected:
 								case_selected.append({'case_name': note['case_name']})
 
-				if case_selected:
+					if case_selected:
+						root = QTreeWidgetItem(self.p_c_treeview)
+						root.setText(0, project['project_name'])
+						for case in case_selected:
+							child = QTreeWidgetItem(root)
+							child.setText(0, case['case_name'])
+
+				else:
 					root = QTreeWidgetItem(self.p_c_treeview)
 					root.setText(0, project['project_name'])
-					for case in case_selected:
+					case_list = self.DB.select('case_list', 'case_name', 'project_name', project['project_name'])
+					for case in case_list:
 						child = QTreeWidgetItem(root)
 						child.setText(0, case['case_name'])
-
-			else:
-				root = QTreeWidgetItem(self.p_c_treeview)
-				root.setText(0, project['project_name'])
-				case_list = self.DB.select('case_list', 'case_name', 'project_name', project['project_name'])
-				for case in case_list:
-					child = QTreeWidgetItem(root)
-					child.setText(0, case['case_name'])
 
 		self.p_c_treeview.expandAll()
 		self.p_c_treeview.setStyle(QStyleFactory.create('windows'))
@@ -372,7 +404,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		self.p_c_tree_refresh()
 
 	def label_init(self):
-		self.labels = ('特殊', '进行中', '搁置', '已结', '其他')
+		self.labels = ('置顶', '在办', '搁置', '已结', '其他', '检索报告')
 
 	def set_label(self, label):
 		current_project = self.p_c_treeview.currentIndex().data()
@@ -437,8 +469,11 @@ class ui_main(QMainWindow, Ui_MainWindow):
 	def delete_project(self):
 		self.p_c_treeview.itemSelectionChanged.disconnect()
 		if self.p_c_treeview.currentIndex().data():
-			current_project = self.p_c_treeview.currentIndex().data()
-			reply = QMessageBox.warning(self, "删除项目", f"是否删除“{current_project}”？\n"\
+			if self.p_c_treeview.currentIndex().parent().data():
+				current_project = self.p_c_treeview.currentIndex().parent().data()
+			else:
+				current_project = self.p_c_treeview.currentIndex().data()
+			reply = QMessageBox.warning(self, "删除项目", f"是否删除“{current_project}”项目？\n"\
 				f"将会删除对应的案件。", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 			if reply == QMessageBox.Yes:
 				self.DB.delete_project(current_project)
@@ -451,6 +486,8 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		project_name = None
 		if self.p_c_treeview.currentIndex().data() and not self.p_c_treeview.currentIndex().parent().data():
 			project_name = self.p_c_treeview.currentIndex().data()
+		elif self.p_c_treeview.currentIndex().data() and self.p_c_treeview.currentIndex().parent().data():
+			project_name = self.p_c_treeview.currentIndex().parent().data()
 		else:
 			projects = [x['project_name'] for x in self.DB.select('project_list', 'project_name')]
 			project_name, flag = QInputDialog.getItem(self, "新的案件", 
@@ -497,7 +534,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		self.p_c_treeview.itemSelectionChanged.disconnect()
 		if self.p_c_treeview.currentIndex().data() and self.p_c_treeview.currentIndex().parent().data():
 			current_case = self.p_c_treeview.currentIndex().data()
-			reply = QMessageBox.warning(self, "删除案件", f"是否删除“{current_case}”？", 
+			reply = QMessageBox.warning(self, "删除案件", f"是否删除“{current_case}”案件？", 
 				QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 			if reply == QMessageBox.Yes:
 				self.DB.delete_case(current_case)

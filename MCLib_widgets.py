@@ -28,10 +28,11 @@ class ui_execute(QDialog, Ui_execute_window):
 
 class ui_new_project(QDialog, Ui_new_project_window):
 	close_signal = pyqtSignal()
-	def __init__(self, DB, parent = None):
+	def __init__(self, DB, label, parent = None):
 		super(ui_new_project, self).__init__(parent)
 		self.setupUi(self)
 		self.DB = DB
+		self.label = label
 		self.project_name_line.textChanged.connect(self.right_project_name)
 		self.project_path_btn.clicked.connect(self.choose_path)
 		self.project_ok_btn.clicked.connect(self.create_project)
@@ -54,7 +55,7 @@ class ui_new_project(QDialog, Ui_new_project_window):
 		project_name = self.project_name_line.text()
 		project_num = self.project_num_line.text()
 		project_path = self.project_path_line.text()
-		self.DB.new_project(project_name, project_num, project_path)
+		self.DB.new_project(project_name, project_num, project_path, self.label)
 		self.close()
 
 	def reject(self):
@@ -626,6 +627,7 @@ class ui_person_info(QDialog, Ui_person_info_window):
 	def infos_view_refresh(self):
 		self.infos_view.setRowCount(0)
 		self.infos_view.setColumnHidden(0, True)
+		self.infos_view.setColumnHidden(2, True)
 		self.infos_view.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
 
 		current_pid = self.pid
@@ -635,7 +637,7 @@ class ui_person_info(QDialog, Ui_person_info_window):
 		self.infos_view.setRowCount(len(item_list))
 		self.infos_view.setVerticalHeaderLabels([x['item'] for x in item_list])
 		self.infos_view.verticalHeader().setMinimumWidth(120)
-		all_values = self.DB.select(f"{self.which_type}_info", 'id, item, value', f"{self.which_type}_id", current_pid)
+		all_values = self.DB.select(f"{self.which_type}_info", f"id, item, value, {self.which_type}_id", f"{self.which_type}_id", current_pid)
 			
 		i = 0
 		for item in item_list:
@@ -643,15 +645,19 @@ class ui_person_info(QDialog, Ui_person_info_window):
 				if s['item'] == item['item']:
 					self.infos_view.setItem(i, 0, QTableWidgetItem(str(s['id'])))
 					self.infos_view.setItem(i, 1, QTableWidgetItem(s['value']))
+					self.infos_view.setItem(i, 2, QTableWidgetItem(str(s[f"{self.which_type}_id"])))
 					break
 			i = i + 1
 
 	def edit_info(self, row_n, col_n):
 		self.infos_view.cellChanged.disconnect()
 		if self.infos_view.selectedItems():
-			pid = self.infos_view.item(row_n, 0).text()
 			new_data = self.infos_view.item(row_n, 1).text()
+			pid = self.infos_view.item(row_n, 0).text()
 			self.DB.update(f"{self.which_type}_info", 'id', pid, 'value', new_data)
+			if row_n == 0:
+				list_pid = self.infos_view.item(row_n, 2).text()
+				self.DB.update(f"{self.which_type}_list", 'id', list_pid, 'name', new_data)
 			self.infos_view_refresh()
 		self.infos_view.cellChanged.connect(self.edit_info)
 
@@ -685,6 +691,7 @@ class ui_case_info_edit(QDialog, Ui_person_info_window):
 	def infos_view_refresh(self):
 		self.infos_view.setRowCount(0)
 		self.infos_view.setColumnHidden(0, True)
+		self.infos_view.setColumnHidden(2, True)
 		self.infos_view.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
 		item_list = self.DB.select_multi_condition('case_type', 'item', 
 			f"type_name = '{self.trans(self.type_name)}' and item_form = 'text'")
