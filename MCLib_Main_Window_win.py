@@ -597,13 +597,22 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		self.notepad_refresh()
 		current = self.p_c_treeview.currentIndex()
 		if current.parent().data():
-			for i in range(4):
-				self.case_info_tab.setTabEnabled(i, True)
+			current_project = current.parent().data()
+			current_label = self.DB.select('project_list', 'label', 'project_name', current_project)[0]['label']
+			if current_label == '5':
+				self.case_info_tab.setCurrentIndex(0)
+				self.case_info_tab.setTabEnabled(0, True)
+				for i in range(1, 4):
+					self.case_info_tab.setTabEnabled(i, False)
+			else:
+				for i in range(4):
+					self.case_info_tab.setTabEnabled(i, True)
 		else:
 			self.case_info_tab.setCurrentIndex(0)
 			self.case_info_tab.setTabEnabled(0, True)
 			for i in range(1, 4):
 				self.case_info_tab.setTabEnabled(i, False)
+
 
 	def copy_mail_address(self, pid):
 		QApplication.clipboard().setText(self.DB.generate_mail_address(pid))
