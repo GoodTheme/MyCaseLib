@@ -3,7 +3,7 @@ import os
 import sys
 from MCLib_Main_Window_win import ui_main
 from MCLib_DB import DataBase
-from PyQt5.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication
 
 if __name__ == '__main__':
 	PATH = os.path.join(os.path.abspath('.'), 'MCLib')
@@ -16,5 +16,5 @@ if __name__ == '__main__':
 	app = QApplication(sys.argv)
 	window_main = ui_main(DB, DB_PATH)
 	window_main.show()
-	sys.exit(app.exec_())
+	sys.exit(app.exec())
 	

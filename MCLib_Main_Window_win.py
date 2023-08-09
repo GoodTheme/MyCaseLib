@@ -2,15 +2,16 @@
 import os
 import sys
 import subprocess
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt6.QtGui import *
+from PyQt6.QtWidgets import *
+from PyQt6.QtCore import *
 from functools import partial, reduce
 from datetime import datetime
 from shutil import copyfile
 
-from MCLib_UI import Ui_MainWindow
+from MCLib_UI_pyqt6 import Ui_MainWindow
 from MCLib_widgets import *
+from AppKit import NSApp, NSApplicationActivationPolicyAccessory
 
 class ui_main(QMainWindow, Ui_MainWindow):
 	def __init__(self, DB, DB_PATH, parent = None):
@@ -25,8 +26,8 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			self.init()
 		except:
 			reply = QMessageBox.critical(self, "错误", "是否删除全部数据并初始化？", 
-			QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-			if reply == QMessageBox.Yes:
+			QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+			if reply == QMessageBox.StandardButton.Yes:
 				self.DB.init()
 				self.init()
 
@@ -89,16 +90,16 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		self.event_view.customContextMenuRequested.connect(partial(self.things_showmenu, self.event_menu))	
 
 		self.todo_view.setHorizontalHeaderLabels(['日期', '事项', 'id'])
-		self.todo_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+		self.todo_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 		self.todo_view.setColumnHidden(2, True)
 		self.todo_view.cellChanged.connect(self.edit_todo)
-		self.todo_view.setSelectionBehavior(QTableWidget.SelectRows)
+		self.todo_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
 
 		self.event_view.setHorizontalHeaderLabels(['日期', '事项', 'id'])
-		self.event_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+		self.event_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 		self.event_view.setColumnHidden(2, True)
 		self.event_view.cellChanged.connect(self.edit_event)
-		self.event_view.setSelectionBehavior(QTableWidget.SelectRows)
+		self.event_view.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
 
 		self.notepad.textChanged.connect(self.notepad_input)
 
@@ -239,12 +240,12 @@ class ui_main(QMainWindow, Ui_MainWindow):
 
 	def show_new_project(self):
 		self.p_c_treeview.itemSelectionChanged.disconnect()
-		messagebox = QMessageBox(QMessageBox.Question, '项目类型', '创建在办案件项目，还是检索案例报告？')
-		right_button = messagebox.addButton(self.tr('在办项目'), QMessageBox.YesRole)
-		left_button = messagebox.addButton(self.tr('案例报告'), QMessageBox.NoRole)
-		messagebox.exec_()
+		messagebox = QMessageBox(QMessageBox.Icon.Question, '项目类型', '创建在办案件项目，还是检索案例报告？')
+		right_button = messagebox.addButton(self.tr('在办项目'), QMessageBox.ButtonRole.YesRole)
+		left_button = messagebox.addButton(self.tr('案例报告'), QMessageBox.ButtonRole.NoRole)
+		messagebox.exec()
 		#which_type = QMessageBox.question(self, '项目类型', '创建在办案件项目（Yes），还是检索案例报告（No）？',\
-		# QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+		# QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
 		if messagebox.clickedButton() == right_button:
 			self.window_second = ui_new_project(DB = self.DB, label = 1)
 			self.window_second.show()
@@ -292,7 +293,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		self.window_second.close_signal.connect(self.case_info_refresh)
 
 	def show_about(self):
-		QMessageBox.about(self, 'MyCaseLib', f"MyCaseLib\n\n版本：{self.version}")
+		QMessageBox.Icon.about(self, 'MyCaseLib', f"MyCaseLib\n\n版本：{self.version}")
 
 	# 案件列表
 	def trans(self, s):
@@ -470,8 +471,8 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			else:
 				current_project = self.p_c_treeview.currentIndex().data()
 			reply = QMessageBox.warning(self, "删除项目", f"是否删除“{current_project}”项目？\n"\
-				f"将会删除对应的案件。", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-			if reply == QMessageBox.Yes:
+				f"将会删除对应的案件。", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+			if reply == QMessageBox.StandardButton.Yes:
 				self.DB.delete_project(current_project)
 				self.p_c_tree_refresh()
 		self.p_c_treeview.itemSelectionChanged.connect(self.case_things_refresh)
@@ -503,7 +504,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 						self.DB.new_case(project_name, case_name, case_type)
 						reply = QMessageBox.question(self, "新的案件", "是否开始输入案件信息？\n"\
 							"（任意时刻退出将中止输入）", 
-							QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+							QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
 							
 						if reply != 65536:
 							items_forms = [[x['item'], x['item_form']] for x in self.DB.select('case_type', 
@@ -531,8 +532,8 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		if self.p_c_treeview.currentIndex().data() and self.p_c_treeview.currentIndex().parent().data():
 			current_case = self.p_c_treeview.currentIndex().data()
 			reply = QMessageBox.warning(self, "删除案件", f"是否删除“{current_case}”案件？", 
-				QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-			if reply == QMessageBox.Yes:
+				QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+			if reply == QMessageBox.StandardButton.Yes:
 				self.DB.delete_case(current_case)
 				self.p_c_tree_refresh()
 		self.p_c_treeview.itemSelectionChanged.connect(self.case_things_refresh)
@@ -612,7 +613,6 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			self.case_info_tab.setTabEnabled(0, True)
 			for i in range(1, 4):
 				self.case_info_tab.setTabEnabled(i, False)
-
 
 	def copy_mail_address(self, pid):
 		QApplication.clipboard().setText(self.DB.generate_mail_address(pid))
@@ -925,8 +925,8 @@ class ui_main(QMainWindow, Ui_MainWindow):
 	# 初始化、备份和还原
 	def do_init(self):
 		reply = QMessageBox.warning(self, "初始化", "是否删除全部数据并初始化？", 
-			QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-		if reply == QMessageBox.Yes:
+			QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+		if reply == QMessageBox.StandardButton.Yes:
 			self.p_c_treeview.itemSelectionChanged.disconnect()
 			self.DB.init()
 			self.read_profile()
@@ -948,14 +948,14 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		BAK_PATH, flag = QFileDialog.getOpenFileName(self, "请选择已备份文件", self.default_filepath)
 		if BAK_PATH:
 			reply = QMessageBox.warning(self, "还原文件", "将覆盖现有全部数据，是否继续？", 
-				QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-			if reply == QMessageBox.Yes:
+				QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+			if reply == QMessageBox.StandardButton.Yes:
 				self.p_c_treeview.itemSelectionChanged.disconnect()
 				self.DB.delete_DB()
 				try:
 					copyfile(BAK_PATH, self.DB_PATH)
 				except:
-					QMessageBox.critical(self, "错误", "还原出错")
+					QMessageBox.Icon.critical(self, "错误", "还原出错")
 				else:
 					self.read_profile()
 					self.p_c_tree_refresh()
@@ -977,7 +977,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 
 		if flag == 0:
 			reply = QMessageBox.question(self, "配色-项目信息", "变更项目信息中项目名的背景颜色：", 
-				QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+				QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
 			if reply != 65536:
 				color = self.DB.select('profile', 'value', 'id', '3')[0]['value']
 				c = QColorDialog.getColor(QColor(color), self)
@@ -986,7 +986,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 
 		elif flag == 1:
 			reply = QMessageBox.question(self, "配色-案件信息", "依次变更案件信息中案件名、分项标题的背景颜色：", 
-				QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+				QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
 			if reply != 65536:
 				for i in range(2):
 					t = str(i + 4)
@@ -997,7 +997,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 
 		elif flag == 2:
 			reply = QMessageBox.question(self, "配色-今日简报", "依次变更今日简报中标题、次级标题、表格的背景颜色：", 
-				QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+				QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
 			if reply != 65536:
 				for i in range(3):
 					t = str(i + 6)

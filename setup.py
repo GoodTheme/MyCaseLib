@@ -10,14 +10,20 @@ from setuptools import setup
 APP = ['MyCaseLib.py']
 DATA_FILES = [ 
 'example',
-'MCLib_Bar_icon.png'
+'MCLib_Bar_icon.png',
+'MCLib_icon_transparent.png',
 ]
 
 OPTIONS = {
-    'iconfile': 'MCLib_icon.png',
+    'iconfile': 'MCLib_icon.icns',
     'includes': [
-    'rumps', 
-    'PyQt5'
+    'PyQt6',
+    'AppKit',
+    'qtawesome',
+    'functools',
+    'datetime',
+    'shutil',
+    'sqlite3',
     ]
 }
 

@@ -18,7 +18,7 @@ class DataBase(object):
 			return ''
 		trans = ''
 		for t in str(s):
-			trans = trans + t if t != "'" else trans + "''"
+			trans = trans + "''" if t == "'" else trans + t
 		return trans
 
 	def execute(self, s):
@@ -94,23 +94,6 @@ class DataBase(object):
 			conn.commit()
 			conn.close()
 
-	def update_latest(self, table_name, column_name, value):
-		conn = sqlite3.connect(self.DB_PATH)
-		cursor = conn.cursor()
-		table_name, column_name, value = map(self.trans, [table_name, column_name, value])
-
-		cursor.execute(f"select max(id) from {table_name}")
-		p_id=cursor.fetchone()[0]
-
-		try:
-			cursor.execute(f"update {table_name} set {column_name} = '{value}' where id = '{p_id}'")
-		except:
-			print("更新数据出错", table_name, column_name, value)
-		finally:
-			cursor.close()
-			conn.commit()
-			conn.close()
-
 	## update的条件均在前面
 	def update(self, table_name, p_column, p_value, column_name, value):
 		conn = sqlite3.connect(self.DB_PATH)
@@ -128,12 +111,29 @@ class DataBase(object):
 	def update_multi_condition(self, table_name, condition, column_name, value):
 		conn = sqlite3.connect(self.DB_PATH)
 		cursor = conn.cursor()
-	
+
 		cursor.execute(f"update {table_name} set {column_name} = '{value}' where {condition}")
 		cursor.close()
 
 		conn.commit()
 		conn.close()
+
+	def update_latest(self, table_name, column_name, value):
+		conn = sqlite3.connect(self.DB_PATH)
+		cursor = conn.cursor()
+		table_name, column_name, value = map(self.trans, [table_name, column_name, value])
+
+		cursor.execute(f"select max(id) from {table_name}")
+		p_id=cursor.fetchone()[0]
+
+		try:
+			cursor.execute(f"update {table_name} set {column_name} = '{value}' where id = '{p_id}'")
+		except:
+			print("更新数据出错", table_name, column_name, value)
+		finally:
+			cursor.close()
+			conn.commit()
+			conn.close()
 
 	def select(self, table_name, column, c_col = None, c_value = None, c_cp = '='):
 		if c_col and not c_value:
@@ -224,8 +224,9 @@ class DataBase(object):
 		return s[0]['maxid']
 
 	# 案件类型
-	def new_type(self, type_name):
+	def new_type(self, type_name, project_or_study):
 		self.insert('type_list', 'type_name', type_name)
+		self.update_latest('type_list', 'projectorstudy', project_or_study)
 			
 	def delete_type(self, type_name):
 		for s in self.select_all('case_list', 'case_type', type_name):
@@ -253,6 +254,20 @@ class DataBase(object):
 			self.delete_multi_condition('case_info', f"case_name = '{self.trans(case_name)}' and item = '{self.trans(item_name)}'")
 		
 		self.delete_multi_condition('case_type', f"type_name = '{self.trans(type_name)}' and item = '{self.trans(item_name)}'")
+
+	def update_type(self, type_name, new_value):
+		self.update('case_list', 'case_type', type_name, 'case_type', new_value)
+		self.update('case_type', 'type_name', type_name, 'type_name', new_value)
+		self.update('type_list', 'type_name', type_name, 'type_name', new_value)
+
+	def update_type_item(self, type_name, item_name, new_value):
+		for s in self.select_all('case_list', 'case_type', type_name):
+			case_name = s['case_name']
+			self.update_multi_condition('case_info', f"case_name = '{self.trans(case_name)}' and item = '{self.trans(item_name)}'", \
+				'item', new_value)
+		
+		self.update_multi_condition('case_type', f"type_name = '{self.trans(type_name)}' and item = '{self.trans(item_name)}'", \
+			'item', new_value)
 
 	# 项目
 	def new_project(self, project_name, project_num = None, file_path = None, label = None):
@@ -290,7 +305,7 @@ class DataBase(object):
 			self.update_latest('case_list', 'case_name', case_name)
 			self.update_latest('case_list', 'case_type', case_type)
 
-	def rename_case(self, project_name, case_name, new_name):
+	def rename_case(self, case_name, new_name):
 		try:
 			self.update('case_list', 'case_name', case_name, 'case_name', new_name)
 		except:
@@ -370,6 +385,17 @@ class DataBase(object):
 		self.delete(f"{which_type}_info", f"{which_type}_id", pid)
 		self.delete_multi_condition('case_info', f"value_form = '{which_type}' and value2 = '{pid}'")
 
+	def update_party_contact_class(self, which_type, which_class, new_value):
+		self.update(f"{which_type}_class", 'class', which_class, 'class', new_value)
+		self.update(f"{which_type}_list", 'class', which_class, 'class', new_value)
+		self.update(f"{which_type}_info", 'class', which_class, 'class', new_value)
+
+	def update_party_contact_item(self, which_type, which_class, which_item, new_value):
+		self.update_multi_condition(f"{which_type}_class", f"class = '{self.trans(which_class)}' "\
+			f"and item = '{self.trans(which_item)}'", 'item', new_value)
+		self.update_multi_condition(f"{which_type}_info", f"class = '{self.trans(which_class)}' "\
+			f"and item = '{self.trans(which_item)}'", 'item', new_value)
+
 	# 数据库文件
 	def delete_DB(self):
 		if os.path.exists(self.DB_PATH):
@@ -382,8 +408,7 @@ class DataBase(object):
 			copyfile(example_path, self.DB_PATH)
 
 	# 生成讯息
-	def generate_project_info_html(self, project):
-		color = self.select('profile', 'value')[2: 3][0]
+	def generate_project_info_html(self, project, project_or_study, color):
 		s = '''
 			<head>
 			<style>
@@ -403,18 +428,46 @@ class DataBase(object):
 			</style>
 			</head>
 			<body>
-		''' % (color['value'])
+		''' % (color)
 		s = s + f"<h3>{project}</h3>"
 		project_info = self.select_all('project_list', 'project_name', project)
 		if project_info and project_info[0]['project_num']:
-			s = s + f"<p>项目号：{project_info[0]['project_num']}</p>"
-		self.labels = ('进行中（置顶）', '进行中', '搁置', '已结', '其他', '案例')
-		s = s + f"<p>当前状态：{self.labels[int(project_info[0]['label'])]}</p>"
+			s = s + f"<p>{'项目号' if project_or_study == 'project' else '备注'}：\
+			{project_info[0]['project_num']}</p>"
+		labels = ('进行中（置顶）', '进行中', '搁置', '已结', '其他', '案例')
+		if int(project_info[0]['label']) < 5:
+			s = s + f"<p>当前状态：{labels[int(project_info[0]['label'])]}</p>"
 		s = s + "</body>"
 		return s
 
-	def generate_case_info_html(self, case):
-		color1, color2 = self.select('profile', 'value')[3: 5]
+	def generate_project_info_all(self, project):
+		s = ''
+		case_list = self.select('case_list', 'case_name, case_type', 'project_name', project)
+		case_types = []
+		for case in case_list:
+			if case['case_type'] not in case_types:
+				case_types.append(case['case_type'])
+		for case_type in case_types:
+			items = [x['item'] for x in self.select('case_type', 'item', 'type_name', case_type)]
+			for item in items:
+				s = s + item + '\t'
+			s = s + '\n'
+
+			for case in case_list:
+				if case['case_type'] == case_type:
+					case_infos = self.select_all('case_info', 'case_name', case['case_name'])
+					for item in items:
+						for info in case_infos:
+							if info['item'] == item:
+								s = s + info['value']
+								if info['value_form'] != 'text':
+									s = s + '：' + self.select(f"{info['value_form']}_info", 'value', 
+										f"{info['value_form']}_id", info['value2'])[0]['value'] + ';'
+						s = s + '\t'
+					s = s + '\n'
+		return s
+
+	def generate_case_info_html(self, case, color1, color2):
 		project = self.select('case_list', 'project_name', 'case_name', case)[0]['project_name']
 		case_type = self.select('case_list', 'case_type', 'case_name', case)[0]['case_type']
 		type_item = self.select_all('case_type', 'type_name', case_type)
@@ -438,9 +491,9 @@ class DataBase(object):
 			table {
 				margin-top: 3px;
 				border-collapse: collapse;
+				line-height: 18px;
 			}
 			td {
-				
 				padding: 5px;
 				border-style: solid;
 				margin-top: 8px;
@@ -460,7 +513,7 @@ class DataBase(object):
 			</style>
 			</head>
 			<body>
-		''' % (color1['value'], color2['value'])
+		''' % (color1, color2)
 		s = s + f"<h3>{case}</h3>"
 		s = s + f"<h4>项目：{project}</h4>"
 
@@ -501,8 +554,7 @@ class DataBase(object):
 		s = s + "<table> </body>"
 		return s
 
-	def generate_report_html(self):
-		color1, color2, color3 = self.select('profile', 'value')[5: 8]
+	def generate_report_html(self, color1, color2, color3):
 		s = '''
 			<head>
 			<style>
@@ -544,7 +596,7 @@ class DataBase(object):
 			</style>
 			</head>
 			<body>
-		''' % (color1['value'], color2['value'], color3['value'])
+		''' % (color1, color2, color3)
 
 		def date_to_string(d):
 			return f"{d.strftime('%Y')}年{d.strftime('%m')}月{d.strftime('%d')}日"
@@ -560,7 +612,7 @@ class DataBase(object):
 		s = s + "<h1>今日简报</h1>"
 		s = s + f"<p>{today_year}{today_month}{today_day}  {today_week}</p>"
 
-		s = s + "<h3>今日待办</h3>"
+		s = s + "<h3>今日计划</h3>"
 		s = s + "<table>"
 		today = datetime.now().strftime('%Y-%m-%d')
 		todos = sorted(self.select('todo_list', 'case_name, date, things'), 
@@ -573,7 +625,7 @@ class DataBase(object):
 				break
 		s = s + "</table> <br>"
 
-		s = s + "<h3>十五日内</h3>"
+		s = s + "<h3>未来十五日</h3>"
 		s = s + "<table>"
 		after_15 = (datetime.now() + timedelta(days = 15)).strftime('%Y-%m-%d')
 		for todo in todos:
@@ -612,8 +664,24 @@ class DataBase(object):
 			if t[0] in ('身份证号', '法定代表人', '地址', '注册地址', '居住地址', '联系电话'):
 				if t[1]:
 					s = s + f"{t[0]}：{t[1]}\n"
-	#			else:
-	#				s = s + f"{t[0]}：\n"
+		return s
+
+	def generate_todo_info(self, case):
+		infos = [x for x in self.select('todo_list', 'date, things', 'case_name', case)]
+		s = ''
+		for t in infos:
+			d = datetime.strptime(t['date'], '%Y-%m-%d')
+			date = f"{d.strftime('%Y')}年{d.strftime('%m')}月{d.strftime('%d')}日"
+			s = s + f"{date}\t{t['things']}\n"
+		return s
+
+	def generate_event_info(self, case):
+		infos = [x for x in self.select('event_list', 'date, things', 'case_name', case)]
+		s = ''
+		for t in infos:
+			d = datetime.strptime(t['date'], '%Y-%m-%d')
+			date = f"{d.strftime('%Y')}年{d.strftime('%m')}月{d.strftime('%d')}日"
+			s = s + f"{date}\t{t['things']}\n"
 		return s
 
 	def generate_person_info_html(self, which_type, which_class, pid):

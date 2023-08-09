@@ -6,3 +6,5 @@ dist/
 MCLib/
 __pycache__/
 _UI/
+MyCaseLib.spec
+setup.py
