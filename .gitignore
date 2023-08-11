@@ -6,5 +6,8 @@ dist/
 MCLib/
 __pycache__/
 _UI/
+.eggs/
+apps/
+MCLib_Bar_icon_white.png
 MyCaseLib.spec
 setup.py

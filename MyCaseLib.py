@@ -13,7 +13,7 @@ if __name__ == '__main__':
 	if os.name == 'posix':
 		PATH = os.path.join(NSSearchPathForDirectoriesInDomains(14, 1, 1).objectAtIndex_(0), 'MyCaseLib')
 	else:
-		PATH = os.path.join(os.path.abspath('.'), 'MCLib')
+		PATH = os.path.join(os.environ['APPDATA'], 'MCLib')
 	if not os.path.isdir(PATH):
 		os.mkdir(PATH)
 		

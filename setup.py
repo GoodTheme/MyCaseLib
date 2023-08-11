@@ -15,15 +15,16 @@ DATA_FILES = [
 ]
 
 OPTIONS = {
-    'iconfile': 'MCLib_icon.icns',
+    'iconfile': 'MCLib_icon.png',
+    'packages':[
+    'sqlite3',
+    'PyQt6',
+    'qtawesome',
+    ],
     'includes': [
     'PyQt6',
-    'AppKit',
     'qtawesome',
-    'functools',
-    'datetime',
-    'shutil',
-    'sqlite3',
+    'sqlite3'
     ]
 }
 

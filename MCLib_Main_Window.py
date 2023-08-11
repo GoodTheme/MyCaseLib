@@ -124,8 +124,11 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		self.setWindowTitle(' ')
 		self.setWindowIcon(QtGui.QIcon('MCLib_icon.png'))
 
-		self.stylesheet.setStyleSheet(f"""
+		self.style = f"""
 			/* 全局 */
+			#stylesheet {{
+				background-color: none;
+			}}
 			QWidget {{
 				font: 14px;
 				color: {self.profiles['color_text']};
@@ -170,25 +173,6 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			QTableWidget QHeaderView {{
 				border: 1px solid rgb(100, 100, 100);
 				background-color: {self.profiles['color_table_header']};
-			}}
-
-			/* 顶级窗口 */
-			#stylesheet {{
-				border-radius: 10px;
-			}}
-			#left_frame {{
-				border-top-left-radius: 10px;
-				border-bottom-left-radius: 10px;
-			}}
-			#btn_frame {{
-				border-top-left-radius: 10px;
-			}}
-			#icon_label {{
-				border-top-left-radius: 10px;
-			}}
-			#right_frame {{
-				border-top-right-radius: 10px;
-				border-bottom-right-radius: 10px;
 			}}
 
 			/* 左边栏 */
@@ -315,7 +299,32 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			#option_table::item:hover {{
 				background-color: none;
 			}}
-			""")
+
+			"""
+
+		if self.profiles['is_frameless_window']:
+			self.style += """
+				/* 顶级窗口 */
+				#stylesheet {
+					border-radius: 10px;
+				}
+				#left_frame {
+					border-top-left-radius: 10px;
+					border-bottom-left-radius: 10px;
+				}
+				#btn_frame {
+					border-top-left-radius: 10px;
+				}
+				#icon_label {
+					border-top-left-radius: 10px;
+				}
+				#right_frame {
+					border-top-right-radius: 10px;
+					border-bottom-right-radius: 10px;
+				}
+			"""
+
+		self.stylesheet.setStyleSheet(self.style)
 
 		self.icon_label.setPixmap(QtGui.QIcon('MCLib_icon_transparent.png').pixmap(35, 35))
 		self.left_btn_selected_stylesheet = f"""
@@ -351,6 +360,12 @@ class ui_main(QMainWindow, Ui_MainWindow):
 	def mouseReleaseEvent(self, event):
 		self.mouse_pos = None
 
+	def open_dir(self, dir):
+		if os.name == 'posix':
+			subprocess.call(["open", dir])
+		else:
+			os.startfile(dir)
+
 	# 1.0：状态栏app
 	def show_main_window(self):
 		if os.name == 'posix':
@@ -359,9 +374,12 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		self.raise_()
 
 	def bar_app_init(self):
-		self.icon = QIcon('MCLib_Bar_icon.png')
+		if os.name == 'posix':
+			icon = QIcon('MCLib_Bar_icon.png')
+		else:
+			icon = QIcon('MCLib_icon_transparent.png')
 		self.tray = QSystemTrayIcon()
-		self.tray.setIcon(self.icon)
+		self.tray.setIcon(icon)
 		self.tray.setVisible(True)
 		self.create_bar_menu()
 
@@ -378,7 +396,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 
 		sub_menu = self.bar_menu.addMenu('访达..')
 		newAction = QAction('项目文件夹', self)
-		newAction.triggered.connect(lambda :subprocess.call(["open", self.profiles['default_filepath']]))
+		newAction.triggered.connect(partial(self.open_dir, self.profiles['default_filepath']))
 		sub_menu.addAction(newAction)
 
 		newAction = QAction('更新列表..', self)
@@ -677,7 +695,7 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			btn.setStyleSheet(self.templete_top_btn_deselected_stylesheet)
 
 		set_top_btn(self.project_templete_btn, 'msc.archive', '项目')
-		set_top_btn(self.study_templete_btn, 'msc.library', '案例')
+		set_top_btn(self.study_templete_btn, 'msc.library', '主题')
 		set_top_btn(self.party_templete_btn, 'ph.buildings', '当事人')
 		set_top_btn(self.contact_templete_btn, 'ri.contacts-line', '联系人')
 
@@ -872,14 +890,14 @@ class ui_main(QMainWindow, Ui_MainWindow):
 			project_path = self.DB.select('project_list', 'file_path', 'project_name', 
 				current_project)[0]['file_path']
 		if project_path:
-			subprocess.call(["open", project_path])
+			self.open_dir(project_path)
 
 	def open_file_by_project_name(self, project_name):
 		if self.DB.select('project_list', 'file_path', 'project_name', project_name):
 			project_path = self.DB.select('project_list', 'file_path', 'project_name', 
 				project_name)[0]['file_path']
 			if project_path:
-				subprocess.call(["open", project_path])
+				self.open_dir(project_path)
 
 	def p_c_showmenu(self):
 		localpos = self.p_c_treeview.mapFromGlobal(QCursor().pos())
@@ -2260,11 +2278,11 @@ class ui_main(QMainWindow, Ui_MainWindow):
 		self.profiles['is_frameless_window'] = self.is_frameless_window_checkbox.isChecked()
 		if self.profiles['is_frameless_window']:
 			self.change_setting('is_frameless_window', 'true')
-			self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+			self.window_init()
 			self.show()
 		else:
 			self.change_setting('is_frameless_window', 'false')
-			self.setWindowFlags(Qt.WindowType.WindowSystemMenuHint)
+			self.window_init()
 			self.show()
 
 	def change_is_show_copy_message(self):
